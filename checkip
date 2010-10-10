@@ -1,0 +1,39 @@
+#!/bin/bash
+#
+# pbrisbin 2009
+#
+# http://pbrisbin.com/bin/checkip
+#
+###
+
+logger() { echo "$(date +'[ %d %b %Y %H:%M ]') $*" | tee -a "$log"; }
+
+errorout() { logger "error: $*"; exit 1; }
+
+update_dns() {
+  local file="$HOME/.credentials"
+
+  logger "ip changed: $old -> $new"
+
+  # read user/pass from cred file
+  [[ -f "$file" ]] && . "$file" || errorout 'dns not updated, credentials file not found'
+
+  # try to update with zonedit
+  wget -q -O - --http-user=$zuser --http-passwd=$zpass "$zurl" &>/dev/null || errorout 'dns not updated, wget failure'
+
+  # store new ip
+  echo $new > "$ipfile"
+  logger 'dns updated. the change may take up to an hour to be seen.'
+}
+
+log="${LOGS:-$PWD}/checkip.log"
+
+ip_url='http://tnx.nl/ip'
+ipfile="$HOME/.myip"
+
+touch "$ipfile"
+
+IFS=$'\n' read -r old < "$ipfile"
+new="$(wget -q -O - "$ip_url")"
+
+[[ "$old" != "$new" ]] && update_dns || exit 0

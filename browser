@@ -1,0 +1,23 @@
+#!/bin/bash
+#
+# pbrisbin 2010
+#
+# http://pbrisbin.com/bin/browser
+#
+# set this as $BROWSER and/or URxvt.urlLauncher in .Xdefaults to quickly
+# mess with your default browser without reloading anything
+#
+###
+
+#browser='jumanji'
+browser='chromium'
+
+[[ -n "$DISPLAY" ]] || exit 1
+
+if [[ -n "$*" ]]; then 
+  # jumanji will act funny with literally '' passed as an argument so
+  # we'll only do it if there's actually something there
+  $browser "$*" &>/dev/null &
+else
+  $browser &>/dev/null &
+fi

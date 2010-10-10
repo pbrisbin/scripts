@@ -1,0 +1,23 @@
+#!/bin/bash
+#
+# pbrisbin 2009
+#
+# http://pbrisbin.com/bin/share
+#
+###
+
+message() { echo 'usage: share <file> ...'; exit 1; }
+
+[[ ! -e "$1" ]] && message
+
+path="$1"
+share='/srv/http/shared'
+url="$(file2link "$share/$(basename "$path")")"
+
+[[ -d "$path" ]] && mode=755 || mode=644
+
+cp -r "$path" "$share/" || errorout 'failed to copy'
+chmod $mode "$share/$(basename "$path")"
+
+echo -n "$url" | xclip &>/dev/null
+echo "$url"

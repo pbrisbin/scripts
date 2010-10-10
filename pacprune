@@ -1,0 +1,166 @@
+#!/bin/bash
+#
+# pbrisbin 2009, 2010
+#
+# a work in progress
+#
+# prune a dir of packages back to only N versions
+# from installed
+#
+###
+
+#safety=true   # just make a list
+safety=false # actually prune packages
+
+message() {
+  echo "pacprune [-n number] [-d directory]"
+  echo
+  echo "  defaults to 3 and ./"
+  echo
+  exit 1
+}
+
+logger() { echo "$(date +'[ %d %b %Y %H:%M ]') :: $*" | tee -a "$log"; }
+
+errorout() { logger "error: $*"; exit 1; }
+
+rel2abs() {
+  local file="$(basename "$1")"
+  local dir="$(dirname "$1")"
+
+  pushd "${dir:-./}" &>/dev/null || errorout 'failed to change directory'
+  echo "$PWD/$file"
+  popd &>/dev/null
+}
+
+# get commandline switches
+parse_options() {
+  while [ -n "$1" ]; do
+    case "$1" in
+      -n) shift; N="$1"         ;;
+      -d) shift; prune_dir="$1" ;;
+      *)  message               ;;
+    esac
+    shift
+  done
+
+  # check for valid input
+  [ -z "${N//[0-9]/}" ] || errorout "Invalid number: $N"
+  [ -d "$prune_dir" ]   || errorout "Invalid directory: $prune_dir"
+
+  # set an absolute path
+  prune_dir="$(rel2abs "$prune_dir")"
+}
+
+# accepts a .pkg.tar.{g,x}z
+# returns "name version path"
+get_pkg_info() {
+  local package="$1"
+
+  case "$package" in
+    *gz) gunzip < "$package" | bsdtar -qxf - .PKGINFO ;;
+    *xz) tar -xJf "$package" .PKGINFO                 ;;
+  esac
+      
+  [[ $? -ne 0 ]] && errorout "failed to extract info for $package"
+
+  name="$(awk '/^pkgname/ {print $3}' .PKGINFO)"
+  vers="$(awk '/^pkgver/ {print $3}' .PKGINFO)"
+
+  echo $name $vers $package
+}
+
+# gets info for all packages
+# sets up all.lst
+create_all_list() {
+  local IFS=$'\n' LC_ALL='C'
+
+  touch "$dir/all.lst"
+  logger "gathering package info..."
+
+  pushd "$dir" &>/dev/null || errorout "failed to change directory"
+
+  while read -r package; do
+    logger "reading package $package"
+
+    get_pkg_info "$package" >> "$dir/all.lst"
+  done < <(find "$prune_dir" -maxdepth 1 -type f -name '*.pkg.tar.[gx]z' | sort -r)
+
+  popd &>/dev/null || errorout "failed to change directory"
+}
+
+# queries pacman
+# sets up discard.lst
+create_discard_list() {
+  local IFS=$'\n'
+
+  # copy files into a discard list
+  awk '{print $3}' "$dir/all.lst" > "$dir/discard.lst"
+
+  # weed out the one's to save
+  while read -r pack; do
+    while read -r file; do
+      logger "marking $file for discarding"
+      sed -i "/${file//\//\\/}/d" "$dir/discard.lst"
+    done < <(grep -m $N ^$pack\  "$dir/all.lst" | awk '{print $3}')
+  done < <(pacman -Qq)
+}
+
+# checks if safety is on
+check_safety() {
+  if $safety; then
+    logger 
+    logger "the safety is on."
+    logger 
+    logger "$dir/discard.lst contains packages that would've"
+    logger "been pruned had the safety been off."
+    logger
+    exit 0
+  fi
+}
+
+# uses discard.lst to remove pkgs
+prune_pkgs() {
+  local IFS=$'\n'
+
+  logger 'pruning packages...'
+
+  if [[ ! -d ./garbage ]]; then
+    mkdir ./garbage || errorout 'unable to make garbage directory'
+  fi
+
+  while read -r package; do
+    logger "moving $package to ./garbage..."
+
+    if [ ! -w "$prune_dir" ]; then
+      sudo mv "$package" ./garbage/ || errorout "failed moving $package to ./garbage"
+    else
+      mv "$package" ./garbage/ || errorout "failed moving $package to ./garbage"
+    fi
+  done < "$dir/discard.lst"
+
+  logger 'done'
+}
+
+# log
+log="${LOGS:-$PWD}/pacprune.log"
+
+# set defaults
+dir='/tmp/pruned'
+prune_dir='./'
+N=3
+
+[ $(id -u) -eq 0 ] && errorout "don't run me as root, sudo will be added if needed"
+
+# set up
+rm -rf $dir; mkdir -p $dir
+
+# run it
+parse_options "$@"
+create_all_list
+create_discard_list
+check_safety
+prune_pkgs
+
+# remove it all clear
+[ $? -eq 0 ] && rm -r "$dir"

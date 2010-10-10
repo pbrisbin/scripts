@@ -1,0 +1,30 @@
+#!/bin/bash
+#
+# pbrisbin 2009
+#
+# http://pbrisbin.com/bin/efind
+#
+###
+
+# help
+message() { echo 'usage: efind <directory> <...> [-delete]'; exit 1; }
+
+# get opts
+while [ -n "$1" ]; do
+  case "$1" in
+    -h|--help) message      ;;
+    -delete)   delete=true  ;;
+    *)         args+=("$1") ;;
+  esac
+  shift
+done
+
+# ./ is default
+[[ "${#args[@]}" -eq 0 ]] && args=('./')
+
+# no delete is default
+${delete:-false} && action='rm -rf' || action='echo'
+
+for dir in "${args[@]}"; do
+  find "$dir" -depth -type d -empty -exec $action {} \;
+done

@@ -1,0 +1,16 @@
+#!/bin/bash
+#
+# pbrisbin 2010
+#
+# http://pbrisbin.com/bin/yt
+#
+###
+
+errorout() { echo "error $*" >&2; exit 1; }
+
+# random temp location
+file="/tmp/youtube_video_$$.flv"
+
+youtube-dl -o "$file" "$1" || errorout 'unable to download video'
+mplayer "$file"            || errorout 'unable to play video'
+rm "$file"                 || errorout 'unable to remove video'

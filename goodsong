@@ -1,0 +1,191 @@
+#!/bin/bash
+#
+# goodsong v2.1
+#
+# pbrisbin 2009, 2010
+#
+# http://pbrisbin.com/bin/goodsong
+#
+# 5/9/2010 patched by TomVincent to add:
+#
+#  * use of heredoc in message
+#  * locateMPDConf()
+#  * mpdParam()
+#  * default list as an actual playlist
+#  
+# 9/27/2010 patched by Christian
+#
+#  * add whitespace to pgrep command (prevents bad match on mpdscribble)
+#
+###
+
+message() {
+  cat << EOF
+usage: goodsong [option]
+
+  options:
+
+        -p, --play        play a random song from list, now
+
+        -b, --build       build a playlist from your list, play it
+
+        -s, --show        display a random song from list
+
+        -f, --find regex  find a song in your list using grep 'regex'
+
+        -S, --smart       select a song from your list; find it in
+                          your current playlist or add it; when the
+                          current song ends, play it
+
+        -P, --print       print your list with music dir prepended
+
+        -h, --help        display this
+
+        none              append playing song to list
+
+EOF
+
+  exit 1
+}
+
+# tvincent 5/9/2010 +
+# Return the mpd.conf passed as a parameter to mpd or an expected default
+locateMPDConf() {
+  # Don't use any command that overrides the "real" mpd binary
+
+  # christian 9/27/2010 + add an additional space so as not to match
+  # "/usr/bin/mpdscribble" too
+  #local config="$(pgrep -fl $(which --skip-tilde mpd) | awk '{print $3}')"
+  local config="$(pgrep -fl $(which --skip-tilde mpd)\  | awk '{print $3}')"
+  # christian 9/27/2010 -
+
+  if [[ -z $config ]]; then
+    if [[ -r "$HOME/.mpd/mpd.conf" ]]; then
+      config="$HOME/.mpd/mpd.conf"
+    elif [[ -r '/etc/mpd.conf' ]]; then
+      config='/etc/mpd.conf'
+    else
+      echo 'unable to locate a readable mpd.conf' >&2
+      exit 1
+    fi
+  fi
+
+  echo "$config"
+}
+
+# tvincent 5/9/2010 +
+# From the given regex ($1), find the relevant mpd.conf parameter
+mpdParam() {
+  if [[ -z "$1" ]]; then
+    echo 'illegal function call: mpdParam()' >&2
+    exit 1
+  fi
+
+  local mpdconf="$(locateMPDConf)" param
+
+  # locates parameter values where value can be single, double, or
+  # un-quoted -- also translate ~ to $HOME
+  param="$(sed -r '/^'"$1"' *(\"|'\''|)([^\1]*)\1/!d; s//\2/g; s%~%'"$HOME"'%g' "$mpdconf")"
+
+  echo "$param"
+}
+
+# just prints your list with the music dir prepended (for easy piping, etc)
+printlist() {
+  local mdir="$(mpdParam '^music_directory')"
+  sed "s|^|$mdir/|g" "$list"
+}
+
+# return playlist position of a random good song
+get_pos() {
+  local track="$(cat $list | sort -R | head -n 1)" pos
+
+  #pos=$(mpc --format '%position% %file%' playlist | grep "[0-9]*\ $track$" | awk '{print $1}' | head -n 1)
+  pos=$(mpc --format '%position% %file%' playlist | awk "/[0-9]* ${track//\//\\/}$/"'{print $1}' | head -n 1)
+
+  if [[ -z "$pos" ]]; then
+    mpc add "$track"
+    pos=$(mpc playlist | wc -l)
+  fi
+
+  echo "$pos"
+}
+
+# returns current seconds remaining
+get_lag() {
+  local time curm curs totm tots lag N
+
+  time="$(mpc | awk '/playing/ {print $3}')"
+
+  if [[ -n "$time" ]]; then
+    while IFS=':' read -r curm curs totm tots; do
+      cur=$((curm*60+curs))
+      tot=$((totm*60+tots))
+
+      lag=$((tot-cur))
+    done <<< "${time////:}"
+
+    # adjust lag based on crossfade
+    N=$(mpc crossfade | awk '{print $2}')
+    [[ -n "$N" ]] && lag=$((lag-N))
+
+    echo "$lag"
+  else
+    echo "0"
+  fi
+}
+
+# build a playlist and play it; could probably just use mpc load
+# playlist command here at this point...
+build_playlist() {
+  local IFS=$'\n'
+
+  mpc clear >/dev/null
+  while read -r; do
+    mpc add "$REPLY"
+  done < <(sort -R "$list")
+  mpc play
+}
+
+# add current song to the list
+add_to_list() {
+  # is mpd playing?
+  mpc | grep -Fq playing || exit 1
+
+  # get song filename
+  song="$(mpc --format %file% | head -n 1)"
+
+  # add it -- prevent dupes
+  grep -Fqx "$song" "$list" || echo "$song" >> "$list"
+}
+
+# queue up a good song for when the current song ends
+smart_play() { (sleep $(get_lag) && mpc play $(get_pos) &>/dev/null) & }
+
+# show one random good song
+show_one() { sort -R "$list" | head -n 1; }
+
+# play a random good song
+play_one() { mpc play $(get_pos); }
+
+# search the list
+search_list() { grep -i "$*" "$list"; }
+
+parse_options() {
+  case "$1" in
+    -h|--help)  message                 ;;
+    -s|--show)  show_one                ;;
+    -f|--find)  shift; search_list "$*" ;;
+    -p|--play)  play_one                ;;
+    -b|--build) build_playlist          ;;
+    -S|--smart) smart_play              ;;
+    -P|--print) printlist               ;;
+    *)          add_to_list             ;;
+  esac
+}
+
+# tvincent 5/9/2010 +
+list="$(mpdParam 'playlist_directory')/goodsongs.m3u"
+touch "$list" || exit 1
+
+parse_options "$@"

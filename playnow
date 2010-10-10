@@ -1,0 +1,69 @@
+#!/bin/bash
+#
+# http://pbrisbin.com/bin/playnow
+#
+# allows playing of any file or files through
+# mpd without actually adding them to your
+# collection
+#
+# creates symlinks from the file(s) to Music/temp
+# updates, appends to playlist, and plays
+#
+# supports adding multiple files (sumdir/*)
+#
+###
+
+message() { echo 'usage: playnow [file1] [file2] ...'; exit 1; }
+
+# relative path -> absolute path
+rel2abs() {
+  local file dir
+
+  file="$(basename "$1")"
+  dir="$(dirname "$1")"
+
+  pushd "${dir:-./}" &>/dev/null || exit 1
+  echo "$PWD/$file"
+  popd &>/dev/null
+}
+
+# find the value of Music from /etc/mpd.conf
+# change this if you use ~/.mpd/mpd.conf or something
+get_mdir() {
+  local mdir="$(awk -F '"' '/^music_directory/ {print $2}' /etc/mpd.conf)"
+
+  # a literal ~ will cause problems
+  echo "${mdir/\~/$HOME}"
+}
+
+# remove/recreate Music/temp
+clean_temp() { [[ -d "$1" ]] && rm -r "$1"; mkdir -p "$1"; }
+
+# creates link $2 -> $1
+link_files() { [[ ! -L "$2" ]] && ln -s "$1" "$2"; }
+
+# updates the db, waits, appends the temp files to the
+# current playlist
+update_and_add() {
+  mpc --wait --no-status update "$1" || return 1
+  mpc --no-status add "$1"           || return 1
+
+  return 0
+}
+
+mdir="$(get_mdir)"
+temp="$mdir/temp"
+
+# don't clear temp if files are in playlist now
+mpc --format '%file%' playlist | grep -q "^${temp/$mdir\//}" || clean_temp "$temp"
+
+# get current length
+n=$(mpc playlist | wc -l)
+
+# use `playnow ./*` for cwd support
+for file in "$@"; do 
+  link_files "$(rel2abs "$file")" "$temp/$(basename "$file")"
+done
+
+# add them and play prev length + 1
+update_and_add "${temp/$mdir\//}" && mpc play $((n+1)) >/dev/null

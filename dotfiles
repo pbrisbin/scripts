@@ -1,0 +1,75 @@
+#!/bin/bash
+#
+# pbrisbin 2009, 2010
+#
+###
+
+set_destination() {
+  local file="$1"
+
+  # trim leading dot
+  file="${file/./}"
+
+  # replace / with _
+  file="${file////_}"
+
+  echo "$file"
+}
+
+# location of public dotfiles
+dots='/srv/http/dotfiles'
+
+[[ -d "$dots" ]] || errorout 'dotfiles directory not found'
+
+# get sed scrubme pattern from a mod 600 cred file
+. /home/patrick/.credentials
+
+# if we don't now know what to scrub, GTFO
+[[ -z "$scrubme" ]] && errorout 'scrub pattern not found'
+
+clean='.bashrc
+       .Xdefaults
+       .xcolors/zenburn.xcolors
+       .xcolors/jasonwryan.xcolors
+       .xinitrc
+       .screenrc
+       .vimrc
+       .conkyrc
+       .dmenurc
+       .dzen_conkyrc
+       .dvdcopy.conf
+       .config/aurgetrc
+       .config/openbox/rc.xml
+       .config/openbox/menu.xml
+       .ncmpcpp/config
+       .irssi/my.theme'
+
+dirty='.mutt/muttrc
+       .mutt/gmx.muttrc
+       .mutt/gmail.muttrc
+       .mutt/colors.muttrc
+       .mutt/sidebar.muttrc
+       .offlineimaprc
+       .msmtprc
+       .irssi/config'
+
+echo 'copying dotfiles...'
+for source in $clean; do
+  if [[ -f "/home/patrick/$source" ]]; then
+    dest="$dots/$(set_destination $source)"
+    cp "/home/patrick/$source" "$dest" && chmod 644 "$dest"
+  else
+    echo "$source not found"
+  fi
+done
+
+for source in $dirty; do
+  if [[ -f "/home/patrick/$source" ]]; then
+    dest="$dots/$(set_destination $source)"
+    sed "$scrubme" "/home/patrick/$source" > "$dest" && chmod 644 "$dest"
+  else
+    echo "$source: file not found"
+  fi
+done
+
+echo 'done.'

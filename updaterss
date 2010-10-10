@@ -1,0 +1,20 @@
+#!/bin/bash
+#
+# wrapper for my haskell rssfeed generator
+#
+###
+
+# feed location
+feed='/srv/http/pages/rssfeed.rss'
+
+# back it up
+if ! cp "$feed" "$HOME/Documents/archive/"; then
+  echo 'error during backup'
+  exit 1
+fi
+
+# http://pbrisbin.com/code/haskell/rssgen/rssgen.hs
+if ! rssgen > "$feed"; then
+  echo 'error during update'
+  exit 1
+fi

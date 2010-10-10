@@ -1,0 +1,21 @@
+#!/bin/bash
+#
+# pbrisbin 2010
+#
+# http://pbrisbin.com/bin/updategoodsong
+#
+# run periodically via to update the goodsong.m3u on my htpc with the
+# one present here
+#
+###
+
+# local playlist, updated as i use `goodsong`
+localFile="$HOME/.mpd/playlists/goodsongs.m3u"
+
+# remote playlist, spaces not supported
+remoteFile='~/.xbmc/userdata/playlists/music/goodsongs.m3u'
+
+# no file to copy
+[[ -f "$localFile" ]] || exit 1
+
+sed -e 's%^%smb://BLUE/Music/%g' "$localFile" | ssh xbmc@htpc "cat > $remoteFile"

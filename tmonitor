@@ -1,0 +1,17 @@
+#!/bin/bash
+#
+# tmonitor
+#
+# pbrisbin 2009, 2010
+#
+# http://pbrisbin.com/bin/tmonitor
+#
+###
+
+# awk formattings
+sens='/C\ / {printf "  %-5.5s%4.4s  %-10.10s\n", $1, "::", substr($3, 2, length($3)-1)}'
+hdds='/C$/  {printf "  %-5.5s%4.4s  %-10.10s\n", substr($3, 1, 5), "::", substr($4, 1, 2) ".0" substr($4, 3, 2)}'
+
+# query and print
+sensors 2>/dev/null | awk "$sens"
+find /dev -wholename '/dev/sd?' -exec sudo hddtemp {} 2>/dev/null \; | awk "$hdds"

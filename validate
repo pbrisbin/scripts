@@ -1,0 +1,42 @@
+#!/bin/bash
+#
+# pbrisbin 2010
+#
+# http://pbrisbin.com/bin/validate
+#
+###
+
+is_valid() {
+  # check that $1 is valid via w3c and grep out what doctype it was
+  # validated as
+  wget -q -O - \
+    "http://validator.w3.org/check?uri=${1}&charset=(detect+automatically)&doctype=Inline&group=0" |\
+    grep -F -A 1 'This document was successfully checked as' |\
+    tail -n 1 | grep -o '[^ ]*\!'
+}
+
+check_page() {
+  local page type
+
+  # translate a local file to its url
+  page="$(file2link "$1")"
+
+  # output the results
+  echo -en "${colwht}${page}${colres} ";
+  type="$(is_valid "$page")"
+  
+  if [[ -n "$type" ]]; then 
+    echo -e "${colgrn}VALID ${type}${colres}"
+  else
+    echo -e "${colred}NOT VALID${colres}"
+  fi
+}
+
+colwht="\e[1;37m"
+colred="\e[1;31m"
+colgrn="\e[1;32m"
+colres="\e[0m"
+
+for file in "$@"; do
+  [[ -r "$file" ]] && check_page "$file"
+done

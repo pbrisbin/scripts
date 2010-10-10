@@ -1,0 +1,27 @@
+#!/bin/bash
+#
+# wrapper for my haskell sitestats generator
+#
+###
+
+# current and archive site stats
+site='/srv/http/pages/site_stats.html'
+stats="/srv/http/logs/stats_$(date +%Y%m%d%H%M).html"
+
+# remove old stats
+if ! find "$(dirname "$stats")" -type f -mtime +14 -delete; then
+  echo 'error during archive'
+  exit 1
+fi
+
+# archive this one
+if ! cp "$site" "$stats"; then
+  echo 'error during backup'
+  exit 2
+fi
+
+# http://pbrisbin.com/code/haskell/sitestats/Main.hs
+if ! $HOME/Code/bin/sitestats > "$site"; then
+  echo 'error during update'
+  exit 3
+fi

@@ -1,0 +1,116 @@
+#!/bin/bash
+#
+# pbrisbin 2010
+#
+# http://pbrisbin.com/bin/coverart
+#
+# can use audiotag (+atomicparsley for m4a support) or mpc to read tags;
+# make your choice 'round about line 23/25
+#
+###
+
+# reads the requested tag from a file
+read_tag() {
+  local sed
+
+  # strip out (Crap) / Disc X / Volume Y
+  sed='
+  s/(.*) +\([^\)]*\)/\1/g;
+  s/(.*) +\(.*/\1/g;
+  s/(.*) +\[?[Dd]is[ck].*/\1/g;
+  s/(.*) +\[?[Vv]olume.*/\1/g;
+  '
+
+  #which audiotag &>/dev/null || return 1
+  #audiotag -l "$1" | sed -r '/^=== '"$2"': *(.*)/!d;s//\1/g;'"$sed"
+  mpc list ${2,,} any "${1/$mdir\//}" | sed -r "$sed"
+}
+
+url_encode() {
+  local string="$1" awkscript
+
+  awk='
+  $1 == "20"                   { printf("%s", "+"); next } # space becomes plus
+  $1 ~  /0[adAD]/              {                    next } # strip newlines
+  $2 ~  /^[a-zA-Z0-9.*()\/-]$/ { printf("%s", $2);  next } # pass through what we can
+                               { printf("%%%s", $1)      } # take hex value of everything else
+  '
+
+  # thanks to Irm for this bit of magic
+  echo $string | hexdump -v -e '1/1 "%02x\t"' -e '1/1 "%_c\n"' | LANG=C awk "$awk"
+}
+
+# uses my own php page which interfaces with AWS directly to locate a
+# direct url to the product's LargeImage -- pretty sweet
+fetch() {
+  local artist="$1" album="$2" file="$3" url cover_url
+
+  #url="http://192.168.0.5/scripts/albumart.php?artist=${artist// /+}&album=${album// /+}"
+  url="http://192.168.0.5/scripts/albumart.php?artist=$(url_encode "$artist")&album=$(url_encode "$album")"
+
+#  echo would search $url
+#  return
+
+  cover_url="$(wget -q -O - "$url")"
+
+  if [[ -z "$cover_url" ]] || [[ "$cover_url" = 'no results' ]]; then
+    echo "$artist -- $album: cover url not found" >&2
+    return
+  fi
+
+  if wget -q -O "$file" "$cover_url"; then
+    echo "$artist -- $album: cover retrieved"
+  else
+    echo "$artist -- $album: error retrieving cover" >&2
+    rm -f "$file"
+  fi
+}
+
+# process any directory not already containing a 'folder.jpg' file
+# within it
+fetch_covers() {
+  local IFS=$'\n' dir file found artist album track
+
+  while read -r dir; do
+
+    file="$dir/$cover"
+
+    [[ -f "$file" ]] && continue
+
+    found=false
+    artist=''
+    album=''
+
+    # read any one tag and stop
+    while read -r track; do
+      artist="$(read_tag "$track" 'ARTIST')"
+      album="$(read_tag "$track" 'ALBUM')"
+
+      if [[ -n "$artist" ]] && [[ -n "$album" ]]; then
+        found=true
+        break
+      fi
+    done < <(find "$dir" -type f -print)
+
+    if ! $found; then
+      # we shouldn't get here -- fix your tags slacker
+      echo "$(basename "$dir"), no tags read" >&2
+      continue
+    fi
+
+    # fetch the cover
+    fetch "$artist" "$album" "$file"
+
+  done < <(find "$mdir" -type f -exec dirname {} \; | sort -u)
+}
+
+# removes any folder.jpgs left by this (or any) script
+wipe() { find "$mdir" -name "$cover" -delete; }
+
+mdir="$HOME/Music" # parent directory of your music collection
+cover='folder.jpg' # the filename to store the covers as
+
+# pass '--wipe' to do-over
+[[ "$1" = '--wipe' ]] && wipe
+
+fetch_covers

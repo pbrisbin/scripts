@@ -1,0 +1,15 @@
+#!/bin/bash
+#
+# pbrisbin 2010
+#
+# http://pbrisbin.com/bin/vim-term
+#
+# makes a one word executable to open vim
+# in a new terminal
+#
+###
+
+file="$*"
+term='urxvtc'
+
+$term -e vim "$file" &>/dev/null &

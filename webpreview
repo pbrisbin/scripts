@@ -1,0 +1,96 @@
+#!/bin/bash
+#
+# webpreview, pbrisbin 2010
+#
+# http://pbrisbin.com/bin/webpreview
+#
+# see http://pbrisbin.com/pages/webpreview.html for details
+#
+###
+
+message() { echo 'usage: webpreview [ --open | --reload ] <file>' >&2; exit 1; }
+
+rel2abs() {
+  local file dir
+
+  file="$(basename "$1")"
+  dir="$(dirname "$1")"
+
+  pushd "${dir:-./}" &>/dev/null || return 1
+  echo "$PWD/$file"
+  popd &>/dev/null
+}
+
+doopen() { uzbl-core "$file_url" &>/dev/null & }
+
+to_socket() {
+  local IFS=$'\n' socket="$1"
+
+  while read -r; do
+    echo "$REPLY" | socat - unix-connect:$socket 2>/dev/null | grep -v '^EVENT\|^\ *$'
+  done
+}
+
+send_reload() {
+  local socket="$1"
+
+  echo "$socket" > "$session"
+  echo 'reload' | to_socket "$socket"
+  exit 0
+}
+
+check_uri() {
+  local socket="$1" uri
+
+  uri="$(echo 'print @uri' | to_socket $socket)"
+  uri="${uri%%\?*}"
+
+  [[ "$uri" = "$file_url" ]] && send_reload "$socket"
+}
+
+try_recent() {
+  local IFS=$'\n' socket
+
+  [[ -f "$session" ]] && read -r socket < "$session" || return 1
+  [[ -S "$socket"  ]] && check_uri "$socket"         || return 1
+}
+
+try_all() {
+  local socket
+
+  for socket in /tmp/uzbl_socket_*; do
+    check_uri "$socket"
+  done
+}
+
+doreload() {
+  (
+    try_recent # try the most recent one
+    try_all    # try all of them
+  ) &          # do it in background so vim doesn't wait
+}
+
+# store the most recently refreshed so that we can try it first and save
+# some time in the event multiple windows are open
+session='/tmp/webpreview.session'
+
+# we can't use the file:// protocol or links to css files, etc won't
+# work correctly; we need to load it through httpd.
+srv_dir='/srv/http'
+srv_url='http://192.168.0.5'
+
+# no use doing this if we're not in X
+[[ -z "$DISPLAY" ]] && exit 0
+
+# validate arguments
+[[ $# -ne 2 ]] && message
+
+action="$1"
+file="$(rel2abs "$2")"
+file_url="${file/$srv_dir/$srv_url}"
+
+case "$action" in
+  --open)   doopen   ;;
+  --reload) doreload ;;
+  *)        message  ;;
+esac

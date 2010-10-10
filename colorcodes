@@ -1,0 +1,17 @@
+#!/bin/bash
+
+# first 8 colors
+for FG in {0..7}; do
+  echo -en "\e[0;3${FG}m[0;3${FG}\t"
+  [ $((++FG%6)) -eq 0 ] && echo
+done
+echo
+
+[ "$1" != "-l" ] && exit
+
+# up to 256
+for FG in {9..255}; do
+  echo -en "\e[0;38;5;${FG}m[0;38;5;${FG}m\t"
+  [ $((++FG%6)) -eq 0 ] && echo
+done
+echo

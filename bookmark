@@ -1,0 +1,79 @@
+#!/bin/bash
+#
+# NOTICE: this needs a rewrite -- don't use me right now.
+#
+# pbrisbin 2009, 2010
+#
+###
+
+message() { echo ''; exit 1; }
+
+# given a url, return its <title> text
+find_title() { curl --silent "$1" | sed -e '/.*<title>\(.*\)<\/title>.*/!d;s//\1/g'; }
+
+# write out the html page or our bookmarks
+create_page() {
+  local LC_ALL='C' path dir url title
+
+  echo '<html><head>'             >  "$page"
+  echo '<title>Bookmarks</title>' >> "$page"
+
+  if [[ -n "$css_file" ]]; then
+    echo "<link type=\"text/css\" rel=\"stylesheet\" href=\"$css_file\" />" >> "$page"
+  fi
+
+  echo '</head><body>'                    >> "$page"
+  echo '<h1 class="title">Bookmarks</h1>' >> "$page"
+  echo '<hr />'                           >> "$page"
+
+  # write each category's section
+  for path in $(find "$bookmarks" -type f -name bookmarks | sort); do
+    dir="$(dirname "$path")"
+
+    echo "<h3>${dir/$bookmarks/}</h3>" >> "$page"
+    
+    while IFS='|' read -r url title; do
+      echo "<p><a href=\"$url\">${title:-$url}</a></p>" >> "$page"
+    done < "$path"
+
+  done
+
+  echo '</body></html>' >> "$page"
+}
+
+# insert a new bookmark into the structure
+insert_bookmark() {
+  [[ $# -ne 2 ]] && message
+
+  local title entry
+  local dir="$(find "$bookmarks" -type d -wholename "$bookmarks/$1")" 
+  local url="$2"
+
+  [[ -d "$dir"           ]] || mkdir -p "$dir" 
+  [[ -f "$dir/bookmarks" ]] || touch "$dir/bookmarks"
+
+  title="$(find_title "$url")"
+  entry="$url|$title"
+
+  if ! grep -Fqx "$entry" "$dir/bookmarks"; then
+    echo "$entry" >> "$dir/bookmarks" && echo "added: $title"
+  fi
+}
+
+# dump a url list suitable for jumanji bookmarks file
+dump_bookmarks() { find "$bookmarks" -type f -name bookmarks -exec cat {} \+ | cut -d '|' -f 1; }
+
+open_page() { $BROWSER "file://$page"; }
+
+# constants
+bookmarks="$HOME/.my_bookmarks"
+page='/srv/http/shared/bookmarks.html'
+css_file='http://pbrisbin.com/generic.css'
+
+case "$1" in
+  --add)  insert_bookmark "$2" "$3"; exit ;;
+  --dump) dump_bookmarks           ; exit ;;
+esac
+
+create_page
+open_page

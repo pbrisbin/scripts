@@ -1,0 +1,37 @@
+#!/bin/bash
+#
+# pbrisbin 2010
+#
+# http://pbrisbin.com/bin/mktorrents
+#
+# accepts any number of files as arguments. create a symlink in a data
+# directory, then create a torrent for the symlinked file which will
+# automatically start in the running rtorrent session.
+#
+###
+
+outdir="$HOME/.gbs-torrents"
+outdata="$HOME/.gbs-content"
+
+announce='http://tracker.publicbt.com'
+port='80'
+
+[[ -d "$outdir"  ]] || mkdir -p "$outdir"
+[[ -d "$outdata" ]] || mkdir -p "$outdata"
+
+for arg in "$@"; do
+  [[ -f "$arg" ]] && files+=( "$(readlink -f "$arg")" )
+done
+
+pushd "$outdata" &>/dev/null || exit 1
+
+for file in "${files[@]}"; do
+  ln -s "$file" .
+
+  createtorrent -announce "$announce"   \
+                -port "$port"           \
+                "./$(basename "$file")" \
+                "$outdir/$(basename "${file%.*}").torrent"
+done
+
+popd &>/dev/null

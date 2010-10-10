@@ -1,0 +1,62 @@
+#!/bin/bash
+#
+# pbrisbin 2010
+#
+# http://pbrisbin.com/bin/image2link
+#
+###
+
+. /home/patrick/.bin/siteutils
+
+message() { 
+  echo "usage: image2link [ -t ] [ -f ] <image> ..."
+  echo
+  echo "  optoins:"
+  echo
+  echo "        -t  use -thumb"
+  echo "        -f  print valid BBS tags"
+  echo
+  exit 1
+}
+
+_thumb=false
+_forum=false
+
+while [ -n "$1" ]; do
+  case "$1" in
+    -h) message                        ;;
+    -t) _thumb=true                    ;;
+    -f) _forum=true                    ;;
+    *)  images+=( "$(basename "$1")" ) ;;
+  esac
+  shift
+done
+
+for file in "${images[@]}"; do
+
+  # set image
+  image="$shots_dir/$file"
+
+  # set thumb
+  $_thumb && thumb="${image/.png/-thumb.png}" || thumb="$image"
+
+  # don't print errors, just don't do it
+  [[ -e "$image" ]] || continue
+  [[ -e "$thumb" ]] || continue
+
+  # make up some <img> id tag
+  id="$(basename "$image")"
+  id="${id^^}"
+
+  # print links
+  if $_forum; then
+    # bbs formatting
+    echo "[url=$(file2link "$image")][img]$(file2link "$thumb")[/img][/url]"
+  else
+    # valid xhtml 1.0 strict
+    echo "<a href=\"${image//$file_root}\"><img"
+    echo "        src=\"${thumb//$file_root}\""
+    echo "        id=\"$id\" alt=\"Screenshot\" /></a>"
+  fi
+
+done

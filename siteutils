@@ -1,0 +1,172 @@
+#!/bin/bash
+#
+# pbrisbin 2010
+#
+# utilities for managing my website. contains useful
+# functions and constants. functions should check their
+# input and required constants before running in case
+# i eff up their usage in a script sourcing this
+#
+# when possible args/constants should have sane default
+# values (see mk_href as an example)
+#
+###
+
+# UTILITIES {{{
+
+# standard logger
+logger() { echo "$(date +'[ %d %b %Y %H %M ]') :: $(basename $0) :: $*" | tee -a "$log"; }
+
+# standard errorout
+errorout() { logger "error: $*"; exit 1; }
+
+# standard help
+message() { echo 'dude, an un-overloaded call to message(), really?'; exit 1; }
+
+# }}}
+
+# relative to absolute {{{
+#
+# usage: rel2abs ./file  rel2abs ~/file  rel2abs file
+#
+rel2abs() {
+  local file="$1" dir
+
+  if [ ! -e "$file" ]; then
+    echo "$file"
+    return
+  fi
+
+  dir="$(dirname "$file")"
+  file="$(basename "$file")"
+
+  pushd "${dir:-./}" &>/dev/null || exit 1
+  dir="$PWD"
+  popd &>/dev/null
+
+  echo "$dir/$file"
+}
+
+# }}}
+
+# make href and swap {{{
+#
+# usage: mk_href /srv/http/pages/something.html here
+#
+mk_href() {
+  local file="${1:-/srv/http/}"
+  local link="${2:-$(basename "$file")}"
+  local reverse=${reverse:-false}
+
+  local wrappers=('<a href="' '">' '</a>')
+
+  $reverse && file_root='' || page_root=''
+
+  echo "${wrappers[0]}$(swap "$file")${wrappers[1]}$link${wrappers[2]}"
+}
+
+# usage: swap /srv/http/something.html  swap -r http://pbrisbin.com/something.html
+#
+swap() { 
+  local reverse=${reverse:-false}
+
+  $reverse && echo "${*//$page_root/$file_root}" || echo "${*//$file_root/$page_root}"
+}
+
+# }}}
+
+# list all pages in order of most recently modified {{{
+#
+# usage: get_pages_by_date
+#
+#get_pages_by_date() { ls -lt "$pages"/*.html | grep -v -- '->' | awk '{print $NF}'; }
+
+# }}}
+
+# image manipulation {{{
+#
+# usage: make_size 'half' 50 /image
+#
+make_size() {
+  local name="$1" perc="$2" file="$3"
+
+  case "$file" in
+    *.png)  thum="${file/.png/-$name.png}"   ;;
+    *.jpg)  thum="${file/.jpg/-$name.jpg}"   ;;
+    *.jpeg) thum="${file/.jpeg/-$name.jpeg}" ;;
+    *.bmp)  thum="${file/.bmp/-$name.bmp}"   ;;
+    *)      return 1                         ;;
+  esac
+
+  [[ -e "$thum" ]] && return
+
+  cp "$file" "$thum" && mogrify -resize ${perc}% "$thum"
+}
+
+# do a conditional resize of $1
+# return basename of resized image
+#
+# usage: do_resize /image
+#
+do_resize() {
+  local file="$1"
+  local width=$(feh -l "$file" | tail -1 | awk '{print $3}')
+
+  # makes thumb and sets var $thum
+  if [[ $width -le 1920 ]]; then
+    make_size 'half' 50 "$file" || return 1
+  elif [[ $width -le 3600 ]]; then
+    make_size 'third' 30 "$file" || return 1
+  else
+    make_size 'thumb' 20 "$file" || return 1
+  fi
+
+  echo $(basename "$thum")
+}
+
+# }}}
+ 
+# set or check and md5 of a file {{{
+#
+# usage: check_md5 set /path/to/file  check_md5 get /path/to/file
+#
+check_md5() {
+  local mode="$1"
+  local _md5="$(md5sum "$2" | awk '{print $1}')"
+
+  case "$mode" in
+    set) md5="$_md5"                               ;;  
+    get) [[ "$md5" = "$_md5" ]]                    ;;  
+    *)   errorout 'invalid options to check_md5()' ;;
+  esac
+}
+
+# }}}
+
+# show available functions {{{
+show_available() { grep '^# usage:' "$me"; }
+
+# }}}
+
+# constants {{{
+me='/home/patrick/.bin/siteutils'
+
+# all site management can log here or
+# override this on a per script basis
+log='/home/patrick/.logs/siteutils.log'
+
+# file and page paths
+srv='/srv/http'
+site='http://pbrisbin.com'
+
+# used in swap()
+page_root="$site"
+file_root="$srv"
+
+# holds all *.html pages
+pages="$srv/pages"
+
+# holds all screenshots
+shots_dir="$srv/screenshots"
+
+# }}}

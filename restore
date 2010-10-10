@@ -1,0 +1,135 @@
+#!/bin/bash
+#
+# pbrisbin 2009
+#
+# tee required for logging purposes
+#
+###
+
+CONF='/home/patrick/.config/backup.conf'
+
+if [ -f "$CONF" ]; then
+  . "$CONF"
+else
+  exit 1
+fi
+
+# restore from daily or monthly?
+dir="$BACKUP_DAILY"
+#dir="$BACKUP_MONTHLY"
+
+log="$dir/restore.log"
+touch $log
+
+logger() { echo "$(date +'[ %d %b %Y %H:%M ]') :: $*" | tee -a "$log"; }
+
+errorout() {
+  logger "error $*"
+  exit 1
+}
+
+warning() {
+  cat << EOF
+                   
+            . : :: BIG fat warning :: : .
+            . : :: big FAT warning :: : .
+            . : :: big fat WARNING :: : .
+
+  you about to run 'restore' and it's goals are as 
+  follows:
+
+  you should have been running 'backup' via cron on a
+  regular basis.  this companion script should have been
+  saving all the folders of interest and packages lists 
+  needed by 'restore'.
+
+  in the event of catastrophic system failure, you are to
+  wipe / replace the drive and reinstall a vanilla
+  Arch Linux install which will subsequently be destroyed
+  for all intents and purposed by this script.
+
+  once installed, running this script will:
+
+    replace /home/patrick /etc /var and /usr with the 
+    backed up versions
+
+    install repo packages from a list of what was
+    installed prior to the failure
+
+    install foreign packages, if existing in
+    \$HOME/Packages, also based on a list made prior to
+    the failure
+
+    manipulate fstab to match customizations made prior
+    to the failure
+
+  if this is not the situation you are in, STOP NOW.
+
+  otherwise, i hope it works...
+
+EOF
+
+  echo -n "  so, are you sure? [y/n] " && read A
+  [ "$A" != "y" ] && exit 1
+
+}
+
+# big fat warning
+warning
+
+# check that we're root
+[ $(id -u) -ne 0 ] && errorout "You must be root"
+
+### The actual restore
+logger "BEGINNING RESTORATION"
+
+# apply custom fstab entries to new fstab
+# TODO handle errors here
+logger "Manipulating fstab..."
+cp -a /etc/fstab $dir/fstab.clean && logger "  New fstab saved"
+cp -a $dir/etc/fstab $dir/fstab.bak && logger "  Old fstab saved"
+echo >> $dir/etc/fstab 
+grep -A 999 CUSTOM $dir/etc/fstab.bak >> $dir/etc/fstab && logger "  Changes applied to new fstab"
+logger "fstab adjusted"
+
+# restore some directories
+logger "Restoring /home and /var..."
+cp -a $dir/patrick /home/ || errorout "Could not restore directory: /home"
+cp -a $dir/var / || errorout "Could not restore directory: /var"
+logger "/home and /var restored"
+
+# install the pacman packages
+logger "Installing pacman packages..."
+cat $dir/paclog | xargs pacman -S --noconfirm --needed || errorout "Could not install packages"
+logger "Pacman packages installed"
+
+# Install the aur packages
+logger "Installing aur packages..."
+cat $dir/aurlog | while read aur; do
+  PACK="$(find /home/patrick/Packages -name $aur*)"
+  if [ "$PACK" = "" ]; then
+    logger "  $aur NOT installed"
+  else
+    pacman -U $PACK && logger "  $aur installed"
+  fi
+done
+logger "AUR packages installed"
+
+# restore remaining directories
+logger "Restoring /etc and /usr..."
+cp -a $dir/etc $dir/usr / || errorout "Could not restore directories: /etc /usr"
+logger "  /etc and /usr restored"
+
+# create any custom directories out of fstab
+logger "making excluded directories..."
+grep -A 50 CUSTOM /etc/fstab | grep \/ | awk '{print $2}' | while read dir; do
+  if [ -d $dir ]; then
+    logger "  $dir exists"
+  else
+    mkdir -p $dir && logger "  $dir restored" || logger "  $dir NOT restored"
+  fi
+done
+logger "excluded directories made"
+
+# hope all went well
+logger "RESTORE FINISHED, SUCCESS?"

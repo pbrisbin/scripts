@@ -1,0 +1,126 @@
+#!/bin/bash
+#
+# pbrisbin 2009
+#
+# http://pbrisbin.com/bin/archive
+#
+###
+
+message() { echo 'archive (-f) [ -x (-t <directory>) (--) <archive> ... | (-t <archive>) (--) <directory> ... ]'; exit 1; }
+
+errorout() { echo "error: $*"; exit 1; }
+
+rel2abs() {
+  local file dir
+
+  file="$(basename "$1")"
+  dir="$(dirname "$1")"
+
+  pushd "${dir:-./}" &>/dev/null
+  echo "$PWD/$file"
+  popd &>/dev/null
+}
+
+compress() {
+  local target="$1"; shift
+
+  case "$target" in
+    *.tbz2|*.tar.bz2) tar cvpjf "$target" "$@"     ;;
+    *.tgz|*.tar.gz)   tar cvpzf "$target" "$@"     ;;
+    *.gz)             cat "$@" | gzip > "$target"  ;;
+    *.bz2)            cat "$@" | bzip2 > "$target" ;;
+    *.zip)            zip -r "$target" "$@"        ;;
+    *.rar)            rar a "$target" "$@"         ;;
+    *.7z)             7z -t7z "$target" "$@"       ;;
+    *)                tar cvpzf "$target.tgz" "$@" ;;
+  esac
+
+  [[ $? -ne 0 ]] && errorout 'failure during compression'
+}
+
+extract() {
+  local archive
+
+  for archive in "$@"; do
+    case "$archive" in
+      *.tbz2|*.tar.bz2) tar xvjf "$archive"              ;;
+      *.tgz|*.tar.gz)   tar xvzf "$archive"              ;;
+      *.tar)            tar xvf "$archive"               ;;
+      *.gz)             gunzip "$archive"                ;;
+      *.bz2)            bunzip2 "$archive"               ;;
+      *.zip)            unzip "$archive"                 ;;
+      *.rar)            unrar x "$archive"               ;;
+      *.Z)              uncompress "$archive"            ;;
+      *.7z)             7z x "$archive"                  ;;
+      *)                errorout "$archive: unkown type" ;;
+    esac
+  done
+
+  [[ $? -ne 0 ]] && errorout 'failure during extraction'
+}
+
+parse_options() {
+  args=()
+  target=''
+  force=false
+  extract=false
+
+  [[ -z "$1" ]] && message
+
+  while [[ -n "$1" ]]; do
+    case "$1" in
+      -h|--help)      message                         ;;
+      -f|--force)     force=true                      ;;
+      -x|--extract)   extract=true                    ;;
+      -d|-t|-n)       shift; target="$(rel2abs "$1")" ;;
+      --d*|--t*|--n*) shift; target="$(rel2abs "$1")" ;;
+      --)             shift; break                    ;;
+      -*)             message                         ;;
+      *)              args+=( "$1" )                  ;;
+    esac
+    shift
+  done
+  
+  # any args after --
+  [[ -n "$*" ]] && args+=( "$@" )
+}
+
+main() {
+  local arg tmps
+
+  if $extract; then
+    target="${target:-$PWD}" # default is ./
+
+    # make args absolute file paths
+    for arg in "${args[@]}"; do
+      tmps=( "$(rel2abs "$arg")" )
+      args=( "${args[@]}" )
+    done
+
+    [[ -d "$target" ]] || mkdir -p "$target"
+    
+    cd "$target" || errorout 'unable to change directory'
+
+    extract "${args[@]}"
+  else
+    if [[ -z "$target" ]]; then
+      if [[ "${#args[@]}" -eq 1 ]]; then
+        arg="${args[0]}"
+
+        case "$arg" in
+          */) target="${arg%/}.tar.gz" ;; # trim final slash
+          *)  target="$arg.tar.gz" ;;
+        esac
+      else
+        target='archive.tar.gz' # default is ./archive.tar.gz
+      fi
+    fi
+
+    ! $force && [[ -e "$target" ]] && errorout "$target: file exists"
+
+    compress "$target" "${args[@]}"
+  fi
+}
+
+parse_options "$@"
+main

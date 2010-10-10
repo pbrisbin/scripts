@@ -1,0 +1,181 @@
+#!/bin/bash
+#
+# pbrisbin 2009
+#
+# http://pbrisbin.com/bin/abuild
+#
+# quickly [re]build packages via ABS
+#
+# assumes your abs tree is synced ahead of time
+#
+###
+
+# utilities {{{
+message() { echo 'usage: abuild [-f|-p] <package> ...'; exit 1; }
+
+errorout() { echo "error: $*"; exit 1; } 
+
+prompt() {
+  local a
+
+  read -p "$*? [Y/n] " a
+  
+  case "${a:-y}" in
+    y|Y) return 0 ;;
+    q|Q) exit 1   ;;
+    *)   return 1 ;;
+  esac
+}
+
+# }}}
+
+# main functions {{{
+source_makepkg() {
+  local IFS=':' confs="/etc/makepkg.conf:$HOME/.makepkg.conf"
+
+  for conf in $confs; do
+    [[ -r "$conf" ]] && . "$conf"
+  done
+
+  pkgext="${PKGEXT:-.pkg.tar.gz}"
+  pkgdir="${pkgdir:-$PKGDEST}"
+
+  # fallback values
+  pkgdir="${pkgdir:-./}"
+  srcdir="${srcdir:-./}"
+
+  # use env var if we've not overruled
+  editor="${editor:-$EDITOR}"
+  editor="${editor:-vi}"
+}
+
+# sets pacargs opts if it's a dep or not
+check_if_dep() {
+  local depstring
+
+  depstring='Install Reason : Installed as a dependency for another package'
+
+  if pacman -Qi "$pack" 2>/dev/null | grep -Fqx "$depstring"; then
+    pacargs='--asdeps'
+  else
+    pacargs=''
+  fi
+}
+
+print_pkgbuild() {
+  # find the directory containing the package's PKGBUILD
+  abs_dir="$(find /var/abs -name "$pack" -print -quit)"
+  [[ -z "$abs_dir" ]] && errorout "$pack: no results found"
+
+  # print its pkgbuild
+  find "$abs_dir" -name PKGBUILD -exec cat {} \;
+}
+
+
+# sets globar var $pkgbuild
+set_PKGBUILD() {
+  # find the directory containing the package's PKGBUILD
+  abs_dir="$(find /var/abs -name "$pack" -print -quit)"
+  [[ -z "$abs_dir" ]] && errorout "$pack: no results found"
+
+  # copy the PKGBUILD to a local build directory
+  rsync -r "$abs_dir" "$srcdir/" || errorout 'failed to copy source files.'
+
+  pkgbuild="$(find "$srcdir/$pack" -name 'PKGBUILD' -print -quit)"
+}
+
+edit_PKGBUILD() {
+  [[ -f "$pkgbuild" ]] || errorout "$pack: no PKGBUILD found"
+
+  if ! $fast; then
+    prompt 'edit PKGBUILD' && $editor "$pkgbuild"
+  fi
+
+  # source to get name/version -- we trust ABS
+  . "$pkgbuild"
+}
+
+build_package() {
+  if ! $fast; then
+    prompt 'build package' || return 1
+  fi
+
+  pushd "$(dirname "$pkgbuild")" &>/dev/null || errorout 'failed to change directory'
+  PKGDEST="$pkgdir" makepkg -s --noconfirm   || errorout 'failed to make package'
+  popd &>/dev/null
+
+  return 0
+}
+
+# we can assume something's been built
+install_package() {
+  if ! $fast; then
+    prompt 'install package' || return 1
+  fi
+
+  # try the exact name
+  pkg="$pkgdir/$pack-$pkgver-$pkgrel-${CARCH}$pkgext"
+
+  if [[ ! -f "$pkg" ]]; then
+    # try any packages
+    pkg="$pkgdir/$pack-$pkgver-$pkgrel-any$pkgext"
+  fi
+
+  if [[ ! -f "$pkg" ]]; then
+    # don't build two dev packages of the same name within the same minute
+    # this is the only way to find git/svn/etc packages' exact filename
+    pkg="$(find "$pkgdir" -ctime -1 -name "$pack-*$pkgext" -print -quit)"
+  fi
+
+  $pacman --noconfirm $pacargs "$pkg" || errorout 'failed to install the package'
+}
+
+parse_options() {
+  fast=false
+  print=false
+
+  args=()
+
+  while [ -n "$1" ]; do
+    case $1 in
+      -h|--help) message      ;;
+      -f|--fast) fast=true    ;;
+      -p|--help) print=true   ;;
+      *)         args+=("$1") ;;
+    esac
+    shift
+  done
+
+  [ ${#args[@]} -eq 0 ] && errorout 'no targets specified, use -h for help'
+}
+
+main() {
+  source_makepkg
+
+  [[ -d "$pkgdir" ]] || mkdir -p "$pkgdir"
+  [[ -d "$srcdir" ]] || mkdir -p "$srcdir"
+
+  [[ -z "$pacman" ]] && errorout 'pacman not set'
+  [[ -z "$editor" ]] && errorout 'editor not set'
+
+  for pack in "${args[@]}"; do
+    if $print; then
+      print_pkgbuild
+    else
+      check_if_dep
+      set_PKGBUILD
+      edit_PKGBUILD
+      build_package && install_package
+    fi
+  done
+}
+
+# }}}
+
+editor=                       # empty uses $EDITOR
+pacman='sudo pacman-color -U' # --asdeps will be added
+pkgdir="$HOME/Packages"       # save packages to
+srcdir="$HOME/Sources"        # build here
+
+parse_options "$@"
+main

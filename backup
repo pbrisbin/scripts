@@ -1,0 +1,88 @@
+#!/bin/bash
+#
+# pbrisbin 2009, 2010
+#
+# example config file contents
+#
+#  # where to log output
+#  LOG='/home/patrick/.logs/backup.log'
+#  
+#  # where to store daily backups
+#  BACKUP_DAILY='/mnt/backup/daily'
+#  
+#  # where to store monthly backups
+#  BACKUP_MONTHLY='/mnt/backup/monthly'
+#  
+#  # a file containing rsync exclude patterns
+#  EXCLUDES='/home/patrick/.backups/backup_exclude.lst'
+#  
+#  # an array of folders to be backed up
+#  INCLUDES=( '/home/patrick' '/etc' '/usr' '/var' '/boot' )
+#
+###
+
+message()  { echo 'usage: backup [ -v ] [ -d | -m ]'; exit 1; }
+logger()   { echo "$(date +'[ %d %b %Y %H:%M ]') :: $*" | tee -a "$LOG"; }
+errorout() { logger "error: $*"; exit 1; }
+
+# backup a single directory
+backup_dir() {
+  local ret=0 folder
+
+  for folder in "$@"; do
+    $verbose && logger "  ...$folder"
+
+    if [[ "$folder" = '/home/patrick' ]]; then
+      # note - i handle my ~/ specially
+      rsync -a -l --delete \
+                  --delete-excluded \
+                  --exclude-from="$excludes" \
+                  "$folder" "$dir/" &>> "$LOG" || ret=1
+    else
+      # all other dirs
+      rsync -a -l --delete "$folder" "$dir/" &>> "$LOG" || ret=1
+    fi
+  done
+
+  return $ret
+}
+
+# set defaults
+conf='/home/patrick/.config/backup.conf'
+verbose=false
+
+# inital sanity checks
+[[ -n "$1"        ]] || message
+[[ $(id -u) -eq 0 ]] || errorout 'you must be root'
+[[ -f "$conf"     ]] || errorout 'config file not found'
+# source config
+. "$conf"
+
+# set excludes variable
+excludes="$EXCLUDES"
+
+# gather other options
+while [[ -n "$1" ]]; do
+  case $1 in
+    -d) dir="$BACKUP_DAILY"   ;;
+    -m) dir="$BACKUP_MONTHLY" ;;
+    -v) verbose=true          ;;
+    *)  message               ;;
+  esac
+  shift
+done
+
+# additional sanity checks
+[[ -f "$excludes"  ]] || errorout 'excludes file not found'
+[[ -n "$dir"       ]] || errorout 'backup directory not set'
+[[ -f "$dir/.lock" ]] || errorout 'backup directories not mounted'
+
+$verbose && logger 'backing up directories...'
+backup_dir ${INCLUDES[@]} || errorout 'failed to backup directories'
+
+$verbose && logger 'generating package lists...'
+pacman -Qqe | grep -Fvx "$(pacman -Qqm)" > "$dir/paclog" || errorout 'failed creating paclisting'
+pacman -Qqm > "$dir/aurlog"                              || errorout 'failed creating aur listing'
+
+$verbose && logger 'done'
+exit 0

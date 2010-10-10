@@ -1,0 +1,120 @@
+#!/bin/bash
+#
+# pbrisbin 2009
+#
+# http://pbrisbin.com/bin/ncom
+#
+# first sketch of an idea for sending commands
+# over a network to another computer
+#
+# encyption / security was never the intent
+#
+# don't start this in listening mode as root,
+# any commands recieved are immediately
+# executed through `eval'
+#
+###
+
+message() {
+  if [ "$1" = "long" ]; then
+    echo
+    echo "ncom is designed to allow a quick and dirty way to"
+    echo "execute commands on a remote machine."
+    echo
+    echo "it is not designed to be secure, it simply passes"
+    echo "the command(s) over the network via nc to another"
+    echo "instance of itself already running in listening"
+    echo "mode."
+    echo
+    echo "the listening daemon will simply evaulate the"
+    echo "commands as it receives them."
+    echo
+  fi
+
+  echo "usage: ncom [option]"
+  echo
+  echo "  slave options:"
+  echo
+  echo "        start     start ncom in listening mode"
+  echo "        stop      stop a listening ncom and close all"
+  echo "                  connections"
+  echo "        restart   restart a listening ncom"
+  echo
+  echo "  master options:"
+  echo
+  echo "        send      open a connection to send commands"
+  echo "                  optionally accepts an ip as argument"
+  echo
+  echo
+
+  exit 1
+}
+
+listen() {
+  local IFS=$'\n'
+
+  echo $$ > $PID_file
+
+  echo I await your command.
+  echo
+
+  # keep the connection open
+  while true; do
+
+    # evaluate commands as they come in
+    while read -r command; do
+      eval $command
+    done < <(nc -l -p $com_port)
+
+  done
+}
+
+close() {
+  if [ -f $PID_file ]; then
+    # kill this script
+    kill $(cat $PID_file)
+
+    # kill the listening nc
+    kill $(ps aux | grep -v awk | awk '/nc -l -p/ {print $2}')
+
+    rm $PID_file
+    exit 0
+  else
+    echo "no PID found."
+    exit 1
+  fi
+}
+
+send_commands() {
+  echo
+
+  if [ -n "$1" ]; then
+    echo Sending commands to $1
+    slave_ip="$1"
+  fi
+
+  echo Type commands then hit enter
+  echo Press Ctrl-c to quit
+  echo
+
+  nc $slave_ip $com_port
+}
+
+# where to store our pid
+PID_file='/tmp/ncom.pid'
+
+# a default slave ip if none is passed
+# localhost for testing
+slave_ip='localhost'
+
+# what port to use for the connection
+com_port='1234'
+
+case "$1" in
+  help)    message 'long'              ;;
+  start)   listen                      ;;
+  stop)    close                       ;; 
+  restart) $0 stop; sleep 3; $0 listen ;;
+  send)    send_commands "$2"          ;;
+  *)       message                     ;;
+esac

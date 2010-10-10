@@ -1,0 +1,42 @@
+#!/bin/bash
+#
+# pbrisbin 2010
+#
+# http://pbrisbin.com/bin/dead_links
+#
+###
+
+message() { echo 'usage: dead_links [-v]'; exit 1; }
+
+parse_links() { sed 's/\ /\n/g' "$1" | grep -o 'href="/[^>]*"' | cut -d '"' -f 2 | grep -Fxv '/'; }
+
+check_link() { [[ -e "${srv}${1%%\?*}" ]]; }
+
+verbose=false
+
+# constants
+srv='/srv/http'
+pages="$srv/pages"
+
+# getopts
+while [[ -n "$1" ]]; do
+  case "$1" in
+    -v|--verbose) verbose=true ;;
+    *)            message      ;;
+  esac
+  shift
+done
+
+# for each page under /srv/http/pages/
+for page in "$pages"/*; do
+  # for each href="/link"
+  for link in $(parse_links "$page"); do
+    # does the corresponding file exist?
+    if ! check_link "$link"; then
+      echo ">> bad link $link in page $page"
+    else
+      # only show good if verbose
+      $verbose && echo "good link $link in $page" 
+    fi
+  done
+done

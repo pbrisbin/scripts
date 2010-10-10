@@ -1,0 +1,83 @@
+#!/bin/bash
+#
+# http://pbrisbin.com/synergize
+#
+# dynamically find a client and setup a synergy config file to accept
+# connections there from
+#
+# need the following somewhere in /etc/synergy.conf
+#
+# #SETUPFOR [host]
+#
+# sed will replace all occurances of [host] with the runtime choice
+#
+###
+
+message() {
+  echo "usage: synergize [host]"
+  echo
+  echo "  if present, the server is immediately initialized for [host]"
+  echo
+  echo "  else, the server is initialized for the first host found"
+  echo "  in the array \$HOSTS that answers ping"
+  echo
+  exit 1
+}
+
+logger() { echo "$(date +'[ %m %b %Y %H:%M ]') :: $*" | tee -a "$log"; }
+
+errorout() { logger "error: $*"; exit 1; }
+
+connect() {
+  pid=$(pgrep synergy)
+  cur=$(awk '/^#SETUPFOR/ {print $2}' $file)
+
+  [[ -z "$cur" ]] && errorout 'cannot determine current host'
+
+  if [ "$cur" = "$1" ]; then 
+    logger "prepared for client $1."
+
+    [ -n "$pid" ] && echo "server ready." && exit 0
+  else
+    logger "preparing for client $1..."
+
+    sed -i s/$cur/$1/g $file
+
+    if [ -n "$pid" ]; then
+      kill $pid || errorout "existing server wouldn't die."
+    fi
+  fi
+
+  synergys &>/dev/null && logger "server ready." || errorout "could not start server."
+
+  exit 0
+}
+
+# each host will be tried in order
+HOSTS=('susan' 'howard' '192.168.0.12')
+
+# keep a log
+log='/home/patrick/.logs/synergize.log'
+
+# where the synergy conf file is located
+file='/etc/synergy.conf'
+
+# help message
+[ "$1" = "--help" ] && message 
+
+# only root
+[ $(id -u) -ne 0 ] && errorout "only root can do that."
+
+# need X
+[ -z "$DISPLAY" ] && errorout "no X display available."
+
+# try $1 if passed
+[ -n "$1" ] && connect $1
+
+# try default HOSTS
+for host in ${HOSTS[@]}; do
+  ping -c 1 $host &>/dev/null && connect $host
+done
+
+# if we're here, we've failed
+errorout "${HOSTS[@]}: no hosts found."

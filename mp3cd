@@ -1,0 +1,93 @@
+#!/bin/bash
+#
+# pbrisbin 2009
+#
+# reads a list of audio files on stdin, creates and burns as many mp3
+# cds as is required for the whole list
+#
+# example: mp3cd < playlist.m3u
+#
+###
+
+logger() { echo "$(date +'[ %d %b %Y %H:%M ]') :: $*" | tee -a "$log"; }
+
+errorout() { logger "error: $*"; exit 1; }
+
+# should return an int same units as $limit
+get_size() { du "$1" | awk '{print $1}'; }
+
+# convert to anything mp3
+convert_file() {
+  local file="$(basename "$1")"
+  local output="$tmp/${file%.*}.mp3"
+
+  logger "converting $file to mp3..."
+
+  #mplayer -vo null -vc null -ao pcm:waveheader:file="$tmp/temp.wav" "$1" 2>/dev/null </dev/null || return 1
+  mplayer -vo null -vc null -af lavcresample=44100,channels=2,format=s16le -ao pcm:file="$tmp/temp.wav".wav "$1" 2>/dev/null </dev/null || return 1
+
+  lame -b 320 "$tmp/temp.wav" "$output" 2>/dev/null </dev/null || return 1
+
+  rm "$tmp/temp.wav"
+
+  return 0
+}
+
+# do the burning
+burn_files() {
+  if [ ${#burn_now[@]} -eq 0 ]; then
+    logger 'nothing to do.'
+    return 1
+  fi
+
+  logger "burning ${#burn_now[@]} files..."
+
+  # http://pbrisbin.com/bin/burn
+  burn "${burn_now[@]}" || errorout 'burn failed'
+
+  return 0
+}
+
+
+# constants
+tmp='/tmp/mp3cd'
+log="${LOGS:-$PWD}/mp3cd.log"
+limit=700000 # a 700MB CD
+
+totsize=0
+burn_queue=()
+burn_now=()
+
+rm -rf "$tmp"
+mkdir -p "$tmp"
+
+IFS=$'\n'
+
+while read -r file; do
+  [[ -e "$file" ]] || logger "$file not found, skipping..."
+
+  case "$file" in
+    *.mp3)  burn_queue+=("$file")                         ;;
+    *)      convert_file "$file" && burn_queue+=("$file") ;;
+  esac
+done
+
+# burn the burn queue in cd sized chunks
+for file in "${burn_queue[@]}"; do
+  size=$(get_size "$file")
+  totsize=$((totsize+size))
+
+  # burn now if we're going over limit
+  if [[ $totsize -ge $limit ]]; then
+    burn_files
+
+    # reset vars
+    burn_now=()
+    totsize=$size
+  fi
+
+  burn_now+=("$file")
+done
+
+# get any leftovers
+burn_files && rm -r "$tmp"
