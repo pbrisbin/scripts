@@ -13,7 +13,7 @@ SCRIPT_NAME='Aurget'
 SCRIPT_DESCRIPTION='A simple pacman-like interface to the AUR'
 SCRIPT_AUTHOR='Patrick Brisbin <pbrisbin@gmail.com>'
 SCRIPT_VERSION='3.1.0'
-SCRIPT_DATE='9/29/2010'
+SCRIPT_DATE='10/10/2010'
 
 # }}}
 
@@ -157,6 +157,8 @@ message() {
   echo '        -Ssq <term>     search aur for <term>, print only package names'
   echo '        -Sp  <package>  print the PKGBUILD for <package>'
   echo '        -Si  <package>  print extended info for <package>'
+  echo
+  echo '        --rebuild       always rebuild (ignore your cache)'
   echo
   echo '        --devel         used with -Su to upgrade all development packages'
   echo
@@ -675,7 +677,7 @@ process_targets() {
     # check in the cache
     pkg="$(find_pkg "$Name" "$Version")"
 
-    if [[ -n "$pkg" ]]; then
+    if ! $rebuild && [[ -n "$pkg" ]]; then
       # use cached package
       display "Installing cached $pkg..."
     else
@@ -705,6 +707,23 @@ clean_entrance() {
   [[ $(id -u) -eq 0 ]] && errorout "You should not run aurget as root."
 
   clear_temp
+}
+
+# }}}
+
+# set_defaults {{{
+set_defaults() {
+  set_nocolor
+  sync_mode='install'
+  search_mode='search'
+  resolve_dependencies=false
+  discard_sources=true
+  dont_discard_devels=true
+  development_regex='.*-git$\|.*-hg$\|.*-svn$\|.*-darcs$\|.*-cvs$\|.*-bzr$'
+  devels=false
+  noconfirm=false
+  rebuild=false
+  remove_makedepends=false
 }
 
 # }}}
@@ -803,7 +822,7 @@ sync_mode=install
 # edit_pkgbuilds=prompt is analagous to prompt_to_edit=true, and
 # edit_pkgbuilds=never is analagous to prompt_to_edit=false
 ###
-edit_pkgbuilds='prompt'
+edit_pkgbuilds=prompt
 
 #
 # set this as true to automatically resolve all aur dependencies.
@@ -813,7 +832,7 @@ resolve_dependencies=false
 #
 # this is a space separated list of package names to be ignored.
 ###
-ignore_packages=''
+ignore_packages=
 
 #
 # by default, aurget uses no color. uncomment to enable/customize.
@@ -832,9 +851,6 @@ version="$SCRIPT_VERSION"
 EOF
 
   fi
-
-  # set no color as default
-  set_nocolor
 
   . "$config"
 
@@ -874,43 +890,6 @@ source_makepkg() {
 
 # }}}
 
-# set_defaults {{{
-set_defaults() {
-  source_makepkg
-
-  sync_mode="${sync_mode:-install}"
-  search_mode="${search_mode:-search}"
-
-  #prompt_to_edit="${prompt_to_edit:-true}"
-  resolve_dependencies="${resolve_dependencies:-false}"
-
-  discard_sources="${discard_sources:-true}"
-  dont_discard_devels="${dont_discard_devels:-true}"
-
-  development_regex="${development_regex:-.*-git$\|.*-hg$\|.*-svn$\|.*-darcs$\|.*-cvs$}"
-  devels="${devels:-false}"
-
-  noconfirm="${noconfirm:-false}"
-
-  remove_makedepends="${remove_makedepends:-false}"
-
-  # verify enums
-  [[ "$edit_pkgbuilds" =~ ^(always|never|prompt)$   ]] || edit_pkgbuilds=prompt
-  [[ "$sync_mode"   =~ ^(download|build|install)$  ]] || errorout 'invalid sync mode specified'
-  [[ "$search_mode" =~ ^(search|info|quiet|print)$ ]] || errorout 'invalid search mode specified'
-
-  # no dep checking unless installing
-  [[ "$sync_mode" != 'install' ]] && resolve_dependencies=false
-
-  # shortcut the deprecated option
-  #case "$edit_pkgbuilds" in
-  #  always|prompt) prompt_to_edit=true  ;;
-  #  never)         prompt_to_edit=false ;;
-  #esac
-}
-
-# }}}
-
 # parse_options {{{
 parse_options() {
   local _opmode=''
@@ -942,6 +921,7 @@ parse_options() {
       --popt)        shift; popts="$1"                      ;;
       --nocolor)     set_nocolor                            ;;
       --noconfirm)   noconfirm=true                         ;;
+      --rebuild)     rebuild=true                           ;;
       --devel)       devels=true                            ;;
       --deps)        resolve_dependencies=true              ;;
       --nodeps)      resolve_dependencies=false             ;;
@@ -961,6 +941,14 @@ parse_options() {
 
   # grab possible args after --
   [[ -n "$*" ]] && args+=("$@")
+
+  # verify enums
+  [[ "$edit_pkgbuilds" =~ ^(always|never|prompt)$   ]]   || edit_pkgbuilds='prompt'
+  [[ "$sync_mode"      =~ ^(download|build|install)$  ]] || errorout 'invalid sync mode specified'
+  [[ "$search_mode"    =~ ^(search|info|quiet|print)$ ]] || errorout 'invalid search mode specified'
+
+  # no dep checking unless installing
+  [[ "$sync_mode" != 'install' ]] && resolve_dependencies=false
 
   # set binaries
   pacman="${pacman_command:-sudo pacman -U}"
@@ -999,18 +987,19 @@ clean_exit() {
 # clean up if we catch signals
 trap 'clean_exit 1' TERM HUP QUIT INT
 
-# some url constants
 aur='http://aur.archlinux.org'
 aur_srch="$aur/rpc.php?type=search&arg="
 aur_info="$aur/rpc.php?type=info&arg="
 aur_pkgs="$aur/packages"
 
-# run it
 clean_entrance
-source_config
+
 set_defaults
+source_config
+source_makepkg
 parse_options "$@"
 main
+
 clean_exit
 
 # vim:foldmethod=marker foldmarker={{{,}}}
