@@ -1,0 +1,55 @@
+#!/bin/bash
+#
+# pbrisbin 2010
+#
+###
+
+errorout() { echo "error: $*" >&2; exit 1; }
+
+mv_file() {
+  local file="$1"
+
+  if [[ -e "$file" ]]; then
+    # todo: rsync or something?
+    cp -r "$file" "$prodsite/" || errorout "$file: failed to copy"
+  else
+    echo "omitting $file; does not exist" >&2
+  fi
+}
+
+devsite="$HOME/Code/haskell/devsite"
+
+# testing values
+#prodsite='/srv/http'
+#[[ $(id -u) -ne 0 ]] && errorout 'only root can do that'
+prodsite="$HOME/http"
+
+[[ "$1" = '--wipe' ]] && wipe=true || wipe=false
+
+cd "$devsite"
+
+# check variable so we don't rm -rf /
+if [[ -n "$prodsite" ]] && $wipe; then
+  echo 'wiping destination'
+  rm -rf "$prodsite/"* || errorout 'failed to wipe destination.'
+fi
+
+echo 'updating static files...'
+mv_file static
+mv_file xmonad
+mv_file hamlet
+mv_file cassius
+
+touch *.hs
+touch */*.hs
+
+echo 'recompiling the application...'
+ghc --make -o app.cgi fastcgi.hs || errorout 'failed'
+
+mv_file app.cgi
+
+# not required while testing
+#echo 'fixing permissions...'
+#chown -R root:http "$prodsite"
+
+echo 'done.'
