@@ -4,6 +4,7 @@
 #
 ###
 
+message()  { echo 'usage: pushsite [--wipe|--post|--help]'; exit 1; }
 errorout() { echo "error: $*" >&2; exit 1; }
 
 mv_file() {
@@ -17,6 +18,15 @@ mv_file() {
   fi
 }
 
+prompt() {
+  read -p "$* [Y/n]? " a
+
+  case ${a:-y} in
+    Y*|y*) return 0 ;;
+    *)     return 1 ;;
+  esac
+}
+
 devsite="$HOME/Code/haskell/devsite"
 
 # testing values
@@ -24,21 +34,43 @@ devsite="$HOME/Code/haskell/devsite"
 #[[ $(id -u) -ne 0 ]] && errorout 'only root can do that'
 prodsite="$HOME/http"
 
-[[ "$1" = '--wipe' ]] && wipe=true || wipe=false
+wipe=false
+post=false
+
+if [[ -n "$1" ]]; then
+  case "$1" in
+    # options beyond first are ignored
+    '--wipe') wipe=true ;;
+    '--post') post=true ;;
+    '--help') message   ;;
+  esac
+fi
+
 
 cd "$devsite"
 
 # check variable so we don't rm -rf /
 if [[ -n "$prodsite" ]] && $wipe; then
-  echo 'wiping destination'
-  rm -rf "$prodsite/"* || errorout 'failed to wipe destination.'
+  if prompt "this will WIPE $prodsite/*, are you sure"; then
+    echo 'wiping destination...'
+    rm -rf "$prodsite/"* || errorout 'failed to wipe destination.'
+  fi
 fi
 
 echo 'updating static files...'
-mv_file static
-mv_file xmonad
-mv_file hamlet
-mv_file cassius
+
+# --post means we just added a new post, no need to update all the
+# static files in the site
+if $post; then
+  mv_file hamlet
+else
+  mv_file static
+  mv_file xmonad
+  mv_file fileshare
+  mv_file aur
+  mv_file hamlet
+  mv_file cassius
+fi
 
 touch *.hs
 touch */*.hs
