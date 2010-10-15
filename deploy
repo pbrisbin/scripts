@@ -43,8 +43,10 @@ if [[ -n "$1" ]]; then
 fi
 
 
-echo 'stopping services...'
-sudo /etc/rc.d/lighttpd stop || errorout 'failed'
+if pgrep lighttpd &>/dev/null; then
+  echo 'stopping services...'
+  sudo /etc/rc.d/lighttpd stop || errorout 'failed'
+fi
 
 cd "$devsite"
 
