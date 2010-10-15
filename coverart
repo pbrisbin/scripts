@@ -45,13 +45,11 @@ url_encode() {
 fetch() {
   local artist="$1" album="$2" file="$3" url cover_url
 
+  # todo: moved to yesod, no more php, page is gone... fixme?
   #url="http://192.168.0.5/scripts/albumart.php?artist=${artist// /+}&album=${album// /+}"
-  url="http://192.168.0.5/scripts/albumart.php?artist=$(url_encode "$artist")&album=$(url_encode "$album")"
-
-#  echo would search $url
-#  return
-
-  cover_url="$(wget -q -O - "$url")"
+  #url="http://192.168.0.5/scripts/albumart.php?artist=$(url_encode "$artist")&album=$(url_encode "$album")"
+  #cover_url="$(wget -q -O - "$url")"
+  cover_url=
 
   if [[ -z "$cover_url" ]] || [[ "$cover_url" = 'no results' ]]; then
     echo "$artist -- $album: cover url not found" >&2

@@ -43,6 +43,9 @@ if [[ -n "$1" ]]; then
 fi
 
 
+echo 'stopping services...'
+sudo /etc/rc.d/lighttpd stop || errorout 'failed'
+
 cd "$devsite"
 
 # check variable so we don't rm -rf /
@@ -76,9 +79,12 @@ touch */*.hs
 echo 'recompiling the application...'
 ghc --make -o app.cgi fastcgi.hs || errorout 'failed'
 
-sudo mv_file app.cgi
+mv_file app.cgi
 
 echo 'fixing permissions...'
 sudo chown -R http:http "$prodsite"
+
+echo 'starting services...'
+sudo /etc/rc.d/lighttpd start || echo 'failed'
 
 echo 'done.'
