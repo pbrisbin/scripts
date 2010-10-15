@@ -2,16 +2,22 @@
 #
 # pbrisbin 2010
 #
+# don't run this as root as we rely on user-specific ENV vars and haskell
+# modules; sudo is used for the parts that require it
+#
 ###
 
-message()  { echo 'usage: deploy [--wipe|--post|--help]'; exit 1; }
+# default behavior is to update all static files without wiping the
+# destination first and to let ghc choose which files need recompiling
+message()  { echo 'usage: deploy [ --wipe | --post | --force | --help ]'; exit 1; }
+
 errorout() { echo "error: $*" >&2; exit 1; }
 
 mv_file() {
   local file="$1"
 
   if [[ -e "$file" ]]; then
-    # todo: rsync or something?
+    # this could be cp, scp, rsync, whatever
     sudo cp -r "$file" "$prodsite/" || errorout "$file: failed to copy"
   else
     echo "omitting $file; does not exist" >&2
@@ -32,23 +38,27 @@ prodsite='/srv/http'
 
 wipe=false
 post=false
+force=false
 
-if [[ -n "$1" ]]; then
+while [[ -n "$1" ]]; do
   case "$1" in
-    # options beyond first are ignored
-    '--wipe') wipe=true ;;
-    '--post') post=true ;;
-    '--help') message   ;;
-  esac
-fi
+    '--help')  message    ;;
+    '--force') force=true ;;
 
+    # these can't both be true
+    '--wipe')  $post || wipe=true ;;
+    '--post')  $wipe || post=true ;;
+  esac
+  shift
+done
 
 if pgrep lighttpd &>/dev/null; then
+  # stop it only if it's running
   echo 'stopping services...'
   sudo /etc/rc.d/lighttpd stop || errorout 'failed'
 fi
 
-cd "$devsite"
+cd "$devsite" || errorout 'failed to change directory'
 
 # check variable so we don't rm -rf /
 if [[ -n "$prodsite" ]] && $wipe; then
@@ -58,14 +68,13 @@ if [[ -n "$prodsite" ]] && $wipe; then
   fi
 fi
 
-echo 'updating static files...'
 
-# --post means we just added a new post, no need to update all the
-# static files in the site
 if $post; then
+  echo 'updating template files...'
   mv_file hamlet
   mv_file cassius
 else
+  echo 'updating all static files...'
   mv_file aur
   mv_file fileshare
   mv_file static
@@ -75,8 +84,9 @@ else
   mv_file cassius
 fi
 
-touch *.hs
-touch */*.hs
+if $force; then
+  find ./ -type f -name '*.hs' -exec touch {} \;
+fi
 
 echo 'recompiling the application...'
 ghc --make -o app.cgi fastcgi.hs || errorout 'failed'
