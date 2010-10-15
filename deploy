@@ -4,7 +4,7 @@
 #
 ###
 
-message()  { echo 'usage: pushsite [--wipe|--post|--help]'; exit 1; }
+message()  { echo 'usage: deploy [--wipe|--post|--help]'; exit 1; }
 errorout() { echo "error: $*" >&2; exit 1; }
 
 mv_file() {
@@ -12,7 +12,7 @@ mv_file() {
 
   if [[ -e "$file" ]]; then
     # todo: rsync or something?
-    cp -r "$file" "$prodsite/" || errorout "$file: failed to copy"
+    sudo cp -r "$file" "$prodsite/" || errorout "$file: failed to copy"
   else
     echo "omitting $file; does not exist" >&2
   fi
@@ -28,11 +28,7 @@ prompt() {
 }
 
 devsite="$HOME/Code/haskell/devsite"
-
-# testing values
-#prodsite='/srv/http'
-#[[ $(id -u) -ne 0 ]] && errorout 'only root can do that'
-prodsite="$HOME/http"
+prodsite='/srv/http'
 
 wipe=false
 post=false
@@ -53,7 +49,7 @@ cd "$devsite"
 if [[ -n "$prodsite" ]] && $wipe; then
   if prompt "this will WIPE $prodsite/*, are you sure"; then
     echo 'wiping destination...'
-    rm -rf "$prodsite/"* || errorout 'failed to wipe destination.'
+    sudo rm -rf "$prodsite/"* || errorout 'failed to wipe destination.'
   fi
 fi
 
@@ -63,11 +59,13 @@ echo 'updating static files...'
 # static files in the site
 if $post; then
   mv_file hamlet
+  mv_file cassius
 else
+  mv_file aur
+  mv_file fileshare
   mv_file static
   mv_file xmonad
-  mv_file fileshare
-  mv_file aur
+
   mv_file hamlet
   mv_file cassius
 fi
@@ -78,10 +76,9 @@ touch */*.hs
 echo 'recompiling the application...'
 ghc --make -o app.cgi fastcgi.hs || errorout 'failed'
 
-mv_file app.cgi
+sudo mv_file app.cgi
 
-# not required while testing
-#echo 'fixing permissions...'
-#chown -R root:http "$prodsite"
+echo 'fixing permissions...'
+sudo chown -R http:http "$prodsite"
 
 echo 'done.'
