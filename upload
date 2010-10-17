@@ -29,7 +29,7 @@ process() {
   if ! $skip; then
     # copy any new sources to server
     [[ -f "$bin/$pack" ]] || errorout "no source at $bin/$1"
-    cp -v "$bin/$pack" "$sources/$pack" || errorout 'unable to copy sources'
+    sudo cp -v "$bin/$pack" "$sources/$pack" || errorout 'unable to copy sources'
   fi
 
   [[ -d "$packages/$pack" ]] || errorout "no package at $packages/$1"
@@ -78,7 +78,7 @@ parse_options() {
 }
 
 bin="$HOME/.bin"
-sources='/srv/http/sources'
+sources='/srv/http/aur'
 packages="$HOME/AUR"
 aurpass="$HOME/.aurploader_pass"
 
