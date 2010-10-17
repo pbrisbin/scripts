@@ -52,6 +52,9 @@ while [[ -n "$1" ]]; do
   shift
 done
 
+# just so we enter out password once at the start
+sudo true
+
 if pgrep lighttpd &>/dev/null; then
   # stop it only if it's running
   echo 'stopping services...'
@@ -89,7 +92,9 @@ if $force; then
 fi
 
 echo 'recompiling the application...'
-ghc --make -o app.cgi fastcgi.hs || errorout 'failed'
+sed -i 's/^-- \(#define PRODUCTION\)$/\1/g' Settings.hs # production setting
+ghc --make -o app.cgi fastcgi.hs || errorout 'failed'   # compile it
+sed -i 's/^\(#define PRODUCTION\)$/-- \1/g' Settings.hs # revert to development
 
 mv_file app.cgi
 
