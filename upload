@@ -26,24 +26,18 @@ process() {
   pack="$1"
   archive="./$pack.tar.gz"
 
-  if ! $skip; then
-    # copy any new sources to server
-    [[ -f "$bin/$pack" ]] || errorout "no source at $bin/$1"
-    sudo cp -v "$bin/$pack" "$sources/$pack" || errorout 'unable to copy sources'
-  fi
-
   [[ -d "$packages/$pack" ]] || errorout "no package at $packages/$1"
 
   if ! $skip; then
     # update md5's
     pushd "$packages/$pack" &>/dev/null || errorout 'unable to change directory'
+    cp -v "$bin/$pack" .                || errorout 'unable to copy sources'
     [[ -f ./PKGBUILD ]]                 || errorout 'pkbuild not found'
     makepkg -g >> ./PKGBUILD            || errorout 'failed updating md5sums'
     vim ./PKGBUILD                      || errorout 'error editing pkgbuild'
 
-    # remove sources from makepkg -g run -- todo: make this _way_ less
-    # presumptuous
-    rm -rv ./src $pack || errorout 'error removing sources'
+    # remove sources from makepkg -g run
+    rm -rv ./src || errorout 'error removing sources'
 
     popd &>/dev/null
   fi
