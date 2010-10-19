@@ -12,8 +12,8 @@
 SCRIPT_NAME='Aurget'
 SCRIPT_DESCRIPTION='A simple pacman-like interface to the AUR'
 SCRIPT_AUTHOR='Patrick Brisbin <pbrisbin@gmail.com>'
-SCRIPT_VERSION='3.1.1'
-SCRIPT_DATE='10/10/2010'
+SCRIPT_VERSION='3.1.2'
+SCRIPT_DATE='10/19/2010'
 
 # }}}
 
@@ -703,9 +703,6 @@ process_targets() {
 # clean_entrance {{{
 clean_entrance() {
   set_lock_file
-
-  [[ $(id -u) -eq 0 ]] && errorout "You should not run aurget as root."
-
   clear_temp
 }
 
@@ -723,6 +720,7 @@ set_defaults() {
   devels=false
   noconfirm=false
   rebuild=false
+  asroot=false
   remove_makedepends=false
 }
 
@@ -922,6 +920,7 @@ parse_options() {
       --nocolor)     set_nocolor                            ;;
       --noconfirm)   noconfirm=true                         ;;
       --rebuild)     rebuild=true                           ;;
+      --asroot)      asroot=true                            ;;
       --devel)       devels=true                            ;;
       --deps)        resolve_dependencies=true              ;;
       --nodeps)      resolve_dependencies=false             ;;
@@ -950,7 +949,16 @@ parse_options() {
   # no dep checking unless installing
   [[ "$sync_mode" != 'install' ]] && resolve_dependencies=false
 
-  # set binaries
+  # prevent root unless desired
+  if [[ $(id -u) -eq 0 ]]; then
+    $asroot || errorout 'You must pass --asroot to allow running aurget as root (not recommended).'
+
+    # set root binaries
+    pacman="${pacman_command:-pacman -U}"
+    makepkg="${makepkg_command:-makepkg -s --noconfirm --asroot}"
+  fi
+
+  # set user binaries
   pacman="${pacman_command:-sudo pacman -U}"
   makepkg="${makepkg_command:-makepkg -s --noconfirm}"
 
