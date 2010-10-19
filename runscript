@@ -2,8 +2,6 @@
 #
 # pbrisbin 2010
 #
-# http://pbrisbin.com/bin/runscript
-#
 # pass a script file (or command) and an interval (seconds are expected
 # but it's passed directly to sleep so 5m or whatever would work too)
 # and the command will be run on that interval forever. the pid is
