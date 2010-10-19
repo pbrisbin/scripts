@@ -17,8 +17,11 @@ mv_file() {
   local file="$1"
 
   if [[ -e "$file" ]]; then
-    # this could be cp, scp, rsync, whatever
-    sudo cp -r "$file" "$prodsite/" || errorout "$file: failed to copy"
+    if $test; then
+      cp -r "$file" "$prodsite/" || errorout "$file: failed to copy"
+    else
+      sudo cp -r "$file" "$prodsite/" || errorout "$file: failed to copy"
+    fi
   else
     echo "omitting $file; does not exist" >&2
   fi
@@ -39,6 +42,7 @@ prodsite='/srv/http'
 wipe=false
 post=false
 force=false
+test=false
 
 while [[ -n "$1" ]]; do
   case "$1" in
@@ -48,14 +52,18 @@ while [[ -n "$1" ]]; do
     # these can't both be true
     '--wipe')  $post || wipe=true ;;
     '--post')  $wipe || post=true ;;
+    '--test')  test=true
+               prodsite="$HOME/http-test"
+               mkdir "$prodsite"
+               cp /etc/lighttpd/dev.conf "$prodsite/" ;;
   esac
   shift
 done
 
 # just so we enter out password once at the start
-sudo true
+$test || sudo true
 
-if pgrep lighttpd &>/dev/null; then
+if ! $test && pgrep lighttpd &>/dev/null; then
   # stop it only if it's running
   echo 'stopping services...'
   sudo /etc/rc.d/lighttpd stop || errorout 'failed'
@@ -63,45 +71,45 @@ fi
 
 cd "$devsite" || errorout 'failed to change directory'
 
-# check variable so we don't rm -rf /
-if [[ -n "$prodsite" ]] && $wipe; then
+if ! $test && $wipe; then
   if prompt "this will WIPE $prodsite/*, are you sure"; then
     echo 'wiping destination...'
     sudo rm -rf "$prodsite/"* || errorout 'failed to wipe destination.'
   fi
 fi
 
+echo 'updating template files...'
+mv_file hamlet
+mv_file cassius
 
-if $post; then
-  echo 'updating template files...'
-  mv_file hamlet
-  mv_file cassius
-else
-  echo 'updating all static files...'
-  mv_file aur
-  mv_file fileshare
+if ! $post; then
+  echo 'updating static files...'
   mv_file static
-  mv_file xmonad
-
-  mv_file hamlet
-  mv_file cassius
+  # xmonad will be updated by updatedocs
 fi
 
 if $force; then
+  # force a recompile
   find ./ -type f -name '*.hs' -exec touch {} \;
 fi
 
 echo 'recompiling the application...'
-sed -i 's/^-- \(#define PRODUCTION\)$/\1/g' Settings.hs # production setting
-ghc --make -o app.cgi fastcgi.hs || errorout 'failed'   # compile it
-sed -i 's/^\(#define PRODUCTION\)$/-- \1/g' Settings.hs # revert to development
+$test || sed -i 's/^-- \(#define PRODUCTION\)$/\1/g' Settings.hs # production setting
+ghc --make -o app.cgi fastcgi.hs || errorout 'failed'            # compile it
+$test || sed -i 's/^\(#define PRODUCTION\)$/-- \1/g' Settings.hs # revert to development
 
 mv_file app.cgi
 
-echo 'fixing permissions...'
-sudo chown -R http:http "$prodsite"
+if $test; then
+  cd "$prodsite"
+  echo 'starting test server...'
+  lighttpd -D -f dev.conf
+else
+  echo 'fixing permissions...'
+  sudo chown -R http:http "$prodsite"
 
-echo 'starting services...'
-sudo /etc/rc.d/lighttpd start || echo 'failed'
+  echo 'starting production services...'
+  sudo /etc/rc.d/lighttpd start || errorout 'failed'
+fi
 
 echo 'done.'
