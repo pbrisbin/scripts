@@ -2,13 +2,12 @@
 #
 # pbrisbin 2009, 2010
 #
-# http://pbrisbin.com/bin/sshot
-#
 # a general scrot wrapper script
 #
 ###
 
-. /home/patrick/.bin/siteutils
+echo 'fixme'
+exit 1
 
 message() {
   echo "usage: sshot [ -n <name> ] [ -f ] [ -l ] [ scrot options ]"
