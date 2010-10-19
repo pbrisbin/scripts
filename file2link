@@ -4,39 +4,15 @@
 #
 ###
 
-. /home/patrick/.bin/siteutils
+message() { echo 'usage: file2link <file>'; exit 1; }
 
-# help
-message() {
-  echo 'usage: file2link [-a] [ <file> | -r <url> ] [<text>]'
-  echo
-  echo '  switch a file for its url'
-  echo
-  echo '  options:'
-  echo
-  echo '        -a      print as <a href="/foo">text</a>'
-  echo '        -r      reverse, switch a url for its file'
-  echo
-  exit 1
-}
+[[ ! -e "$1" ]] && message
 
-# defaults
-reverse=false
-mk_href=false
+srv_lnk='http://pbrisbin.com'
+srv_dir='/srv/http'
 
-while [[ -n "$1" ]]; do
-  case "$1" in
-    -h) message        ;;
-    -r) reverse=true   ;;
-    -a) mk_href=true   ;;
-    *)  args+=( "$1" ) ;;
-  esac
-  shift
-done
+file="$(readlink -f "$1")"
+link="${file/$srv_dir/$srv_lnk}"
 
-# do it
-if $mk_href; then
-  mk_href "$(rel2abs "${args[0]}")" "${args[1]}"
-else
-  swap "$(rel2abs "${args[0]}")"
-fi
+echo -n $link | xclip &>/dev/null
+echo $link
