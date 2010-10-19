@@ -1,0 +1,25 @@
+#!/bin/bash
+#
+# falconindy 2010
+#
+# read man pages of not installed apps via http://man.cx
+# requires: xmllint (libxml2)
+#
+###
+
+BASEURL='http://man.cx'
+XMLLINT='xmllint --html'
+XPATH_EXPR='--xpath //*[@id="manpage"]/pre'
+
+usage() {
+  echo "Usage: ${0##*/} [section] manpage" >&2
+}
+
+case $# in
+  1) PAGE=$1 ;;
+  2) SECTION="($1)"
+     PAGE=$2 ;;
+  *) usage; exit 1 ;;
+esac
+
+curl -s $BASEURL/$PAGE$SECTION | $XMLLINT $XPATH_EXPR - 2>/dev/null | sed 's|</\?[^>]\+>||g;s|&lt\;|<|g;s|&gt\;|>|g' | ${PAGER:-less}
