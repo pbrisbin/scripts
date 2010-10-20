@@ -1,12 +1,6 @@
 #!/bin/bash
 #
-# dvdcopy: copy/decrypt DVD9 to DVD5
-#
 # pbrisbin 2009, 2010
-# 
-# http://pbrisbin.com/bin/dvdcopy
-#
-# 8/15/2010 - rewrote options handling entirely.
 # 
 ###
 
@@ -50,7 +44,7 @@ make_clean() {
 }
 
 cleanup() {
-  if $keep_files; then
+  if ! $keep_files; then
     logger 'cleaning up...'
     rm -rf "$directory"
   fi
@@ -71,9 +65,9 @@ get_dvd_info() {
     sleep 1 && vobcopy -I "$device" > "$directory/title.txt" 2>&1
   done
 
-  [[ -z "$title" ]] && title=$(awk '/Most\ chapters/ {print $6}' $directory/title.txt)
+  [[ -z "$title" ]] && title="$(awk '/Most\ chapters/ {print $6}' "$directory/title.txt")"
 
-  name=$(awk '/Name\ of\ the\ dvd/ {print $6}' $directory/title.txt)
+  name="$(awk '/Name\ of\ the\ dvd/ {print $6}' "$directory/title.txt")"
 
   name_lower="${name,,}"
   name_lower="${name_lower// /_}"
@@ -202,63 +196,76 @@ burn_iso() {
 message() {
   cat << EOF
 
-  usage: dvdcopy [ --option(=argument) ] [...]
+  usage: dvdcopy [ --option(=<argument>) ] [...]
 
-    ~/.dvdcopy.conf will be read first if it's found. for syntax, see the entry
-    for the --config option. commandline arguments will overrule what's defined
-    in the config.
+    ~/.dvdcopy.conf will be read first if it's found (even if --config
+    is passed). for syntax, see the help entry for the --config option.
+    commandline arguments will overrule what's defined in the config.
+
+    invalid options are ignored.
 
     options:
 
-      --config=<file>                   read any of the below options from a 
-                                        file, note that you must strip the '--' 
-                                        and set any argument-less options 
-                                        specifically to either true or false
+      --config=<file>               read any of the below options from a
+                                    file, note that you must strip the
+                                    '--' and set any argument-less
+                                    options specifically to either true
+                                    or false
 
-                                        there is no error if <file> doesn't
-                                        exist
+                                    there is no error if <file> doesn't
+                                    exist
 
-      --directory=<directory>           set the working directory, default is 
-                                        ./dvdcopy
+      --directory=<directory>       set the working directory, default
+                                    is ./dvdcopy
 
-      --keep_files                      keep all intermediate files
+      --keep_files                  keep all intermediate files; note
+                                    that they will be removed the next
+                                    time dvdcopy is run regardless of
+                                    this option
 
-      --device=<file>                   set the reader/burner, default is
-                                        /dev/sr0
-      --title=<number>                  set the title, default is longest
-      --size=<number>                   set the desired output size in KB, 
-                                        default is 4193404
-      --limit=<number>                  set the number of times to attempt a 
-                                        read/burn before giving up, default is
-                                        15
+      --device=<file>               set the reader/burner, default is
+                                    /dev/sr0
 
-      --mpeg_only                       stop after transcoding the mpeg
-      --dvd_only                        stop after authoring the dvd vob files
-      --iso_only                        stop after generating the iso file
+      --title=<number>              set the title, default is longest
+
+      --size=<number>               set the desired output size in KB, 
+                                    default is 4193404
+
+      --limit=<number>              set the number of times to attempt a
+                                    read/burn before giving up, default
+                                    is 15
+
+      --mpeg_only                   stop after transcoding the mpeg
+      --dvd_only                    stop after authoring the dvd
+      --iso_only                    stop after generating the iso
       
-      --mpeg_dir=<directory>            set a save location for the intermediate 
-                                        mpeg file, default is blank -- don't 
-                                        save it
-      --dvd_dir=<directory>             set a save location for the intermediate 
-                                        vob folder, default is blank -- don't 
-                                        save it
-      --iso_dir=<directory>             set a save location for the intermediate 
-                                        iso file, default is blank -- don't 
-                                        save it
+      --mpeg_dir=<directory>        set a save location for the
+                                    intermediate mpeg file, default is
+                                    blank -- don't save it
 
-      --mencoder_options=<options>      pass additional arbitrary arguments to 
-                                        mencoder, multiple options should be
-                                        quoted and there is no validation on
-                                        these; you'll need to know what you're
-                                        doing
+      --dvd_dir=<directory>         set a save location for the
+                                    intermediate vob folder, default is
+                                    blank -- don't save it
 
-      --quiet                           be quiet
-      --verbose                         be verbose
+      --iso_dir=<directory>         set a save location for the
+                                    intermediate iso file, default is
+                                    blank -- don't save it
 
-      --force                           disable any options validation, useful if
-                                        ripping from an image file
+      --mencoder_options=<options>  pass additional arbitrary arguments
+                                    to mencoder, multiple options should
+                                    be quoted and there is no validation
+                                    on these; you'll need to know what
+                                    you're doing. the options are placed
+                                    after '-dvd-device <device>' but
+                                    before all others
 
-      --help                            print this
+      --quiet                       be quiet
+      --verbose                     be verbose
+
+      --force                       disable any options validation,
+                                    useful if ripping from an image file
+
+      --help                        print this
 
 EOF
   
@@ -299,16 +306,16 @@ parse_options() {
 
   while [[ -n "$1" ]]; do
     case "$1" in
-      --config=*)   . "${1#*=}" 2>/dev/null ;;
-      --keep_files) keep_files=true     ;;
-      --mpeg_only)  mpeg_only=true      ;;
-      --dvd_only)   dvd_only=true       ;;
-      --iso_only)   iso_only=true       ;;
-      --quiet)      quiet=true          ;;
-      --verbose)    verbose=true        ;;
-      --force)      force=true          ;;
-      --help)       message             ;;
-      *)            eval "${1/--/}"     ;;
+      --config=*)      . "${1#*=}" 2>/dev/null ;;
+      --mpeg_only)     mpeg_only=true          ;;
+      --dvd_only)      dvd_only=true           ;;
+      --iso_only)      iso_only=true           ;;
+      -k|--keep_files) keep_files=true         ;;
+      -q|--quiet)      quiet=true              ;;
+      -v|--verbose)    verbose=true            ;;
+      -f|--force)      force=true              ;;
+      -h|--help)       message                 ;;
+      *)               eval "${1/--/}"         ;; # all other options
     esac
     shift
   done
