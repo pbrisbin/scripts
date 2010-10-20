@@ -6,27 +6,12 @@
 #
 ###
 
-echo 'fixme'
-exit 1
+message() { echo 'usage: sshot [ -n <name> ] [ -f ] [ scrot options ]'; exit 1; }
 
-message() {
-  echo "usage: sshot [ -n <name> ] [ -f ] [ -l ] [ scrot options ]"
-  echo
-  echo "  options:"
-  echo "        -n,--name   save to $shots_dir/<name>_date.png"
-  echo "        -f,--forum  print forum style link"
-  echo "        -l,--link   print html href style link"
-  echo
-  exit 1
-}
-
-# default behavior
-name='desktop'
-forum=false
-href=false
-
-# always make a thumb
+shots_dir='/srv/http/static/screenshots'
+name="desktop_$(date +%y%m%d%H%M)"
 sopts=('-t' '10')
+forum=false
 
 # grab some options for us, pass anything
 # else directly to scrot
@@ -34,38 +19,24 @@ while [ -n "$1" ]; do
   case $1 in
     -h|--help)  message          ;;
     -f|--forum) forum=true       ;;
-    -l|--link)  href=true        ;;
     -n|--name)  shift; name="$1" ;;
     *)          sopts+=( "$1" )  ;; 
   esac
   shift
 done
 
-shot="$shots_dir/${name// /_}_$(date +%y%m%d%H%M).png"
-
-# take the shot (makes -thumb too)
+shot="$shots_dir/${name// /_}.png"
+thumb="${shot/.png/-thumb.png}"
 scrot ${sopts[@]} "$shot" || exit 1
 
-# do a resize in background 
-# (makes -half or -third files)
-do_resize "$shot" &>/dev/null &
-
-# [url= ][img]...
 if $forum; then
-  output="$(image2link -t -f "$shot")"
+  # [url= ][img]...
+  thumb="${shot/.png/-thumb.png}"
+  output="[url=$(file2link "$shot")][img]$(file2link "$thumb")[/img][/url]"
 
-# <a href= ><img src=...
-elif $href; then
-  output="$(image2link -t "$shot")"
-
-# direct url
+  echo -n "$output" | xclip &>/dev/null
+  echo "$output"
 else
-  output="$(file2link "$shot")"
-
+  # direct link
+  file2link "$shot"
 fi
-
-# put in clipboard
-echo -n "$output" | xclip &>/dev/null
-
-# print to screen
-echo "$output"
