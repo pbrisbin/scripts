@@ -7,11 +7,23 @@
 #
 ###
 
+errorout() { echo "error: $*" >&2; exit 1; }
+
 # default behavior is to update all static files without wiping the
 # destination first and to let ghc choose which files need recompiling
-message()  { echo 'usage: deploy [ --wipe | --post | --force | --help ]'; exit 1; }
+message()  { echo 'usage: deploy [ --wipe | --post | --force | --test | --help ]'; exit 1; }
 
-errorout() { echo "error: $*" >&2; exit 1; }
+compile_site() {
+  echo 'recompiling the application...'
+  $post  && touch Posts.hs                                         # update just hamlet files
+  $force && find ./ -type f -name '*.hs' -exec touch {} \;         # force recompile of all files
+  $test || sed -i 's/^-- \(#define PRODUCTION\)$/\1/g' Settings.hs # set for production
+  ghc --make -o app.cgi fastcgi.hs || errorout 'failed'            # compile it
+  $test || sed -i 's/^\(#define PRODUCTION\)$/-- \1/g' Settings.hs # revert to development
+
+  # update app.cgi
+  mv_file app.cgi
+}
 
 mv_file() {
   local file="$1"
@@ -52,26 +64,28 @@ while [[ -n "$1" ]]; do
     # these can't both be true
     '--wipe')  $post || wipe=true ;;
     '--post')  $wipe || post=true ;;
-    '--test')  test=true
+
+    # a test deployment through lighttpd
+    '--test')  wipe=false
+               post=false
+               test=true
                prodsite="$HOME/http-test"
-               mkdir "$prodsite"
+               [[ -d "$prodsite" ]] || mkdir "$prodsite"
                cp /etc/lighttpd/dev.conf "$prodsite/" ;;
   esac
   shift
 done
 
-# just so we enter out password once at the start
 $test || sudo true
 
 if ! $test && pgrep lighttpd &>/dev/null; then
-  # stop it only if it's running
   echo 'stopping services...'
   sudo /etc/rc.d/lighttpd stop || errorout 'failed'
 fi
 
 cd "$devsite" || errorout 'failed to change directory'
 
-if ! $test && $wipe; then
+if $wipe; then
   if prompt "this will WIPE $prodsite/*, are you sure"; then
     echo 'wiping destination...'
     sudo rm -rf "$prodsite/"* || errorout 'failed to wipe destination.'
@@ -85,20 +99,9 @@ mv_file cassius
 if ! $post; then
   echo 'updating static files...'
   mv_file static
-  # xmonad will be updated by updatedocs
 fi
 
-if $force; then
-  # force a recompile
-  find ./ -type f -name '*.hs' -exec touch {} \;
-fi
-
-echo 'recompiling the application...'
-$test || sed -i 's/^-- \(#define PRODUCTION\)$/\1/g' Settings.hs # production setting
-ghc --make -o app.cgi fastcgi.hs || errorout 'failed'            # compile it
-$test || sed -i 's/^\(#define PRODUCTION\)$/-- \1/g' Settings.hs # revert to development
-
-mv_file app.cgi
+compile_site
 
 if $test; then
   cd "$prodsite"
@@ -107,6 +110,7 @@ if $test; then
 else
   echo 'fixing permissions...'
   sudo chown -R http:http "$prodsite"
+  sudo chown -R patrick:patrick "$prodsite/static"
 
   echo 'starting production services...'
   sudo /etc/rc.d/lighttpd start || errorout 'failed'
