@@ -6,9 +6,8 @@
 #
 ###
 
-errorout() { echo "error: $*"; exit 1; }
-
-message() { echo 'upload [--skip] <package> ...'; exit 1; }
+errorout() { echo "error: $*" >&2; exit 1; }
+message()  { echo 'upload [ --skip ] <package> ...'; exit 1; }
 
 prompt() {
   read -p "$*? [Y/n] " a
@@ -29,22 +28,14 @@ process() {
   [[ -d "$packages/$pack" ]] || errorout "no package at $packages/$1"
 
   if ! $skip; then
-    # update md5's
-    pushd "$packages/$pack" &>/dev/null || errorout 'unable to change directory'
-    cp -v "$bin/$pack" .                || errorout 'unable to copy sources'
-    [[ -f ./PKGBUILD ]]                 || errorout 'pkbuild not found'
-    makepkg -g >> ./PKGBUILD            || errorout 'failed updating md5sums'
-    vim ./PKGBUILD                      || errorout 'error editing pkgbuild'
-
-    # remove sources from makepkg -g run
-    rm -rv ./src || errorout 'error removing sources'
-
-    popd &>/dev/null
-  fi
-
-  if ! $skip; then
-    # create tarball
-    tar cvpzf "$archive" "$packages/$pack" &>/dev/null || errorout 'failed to compress archive'
+    pushd "$packages/$pack" &>/dev/null    || errorout 'unable to change directory'
+    cp -v "$bin/$pack" .                   || errorout 'unable to copy sources'
+    [[ -f ./PKGBUILD ]]                    || errorout 'pkbuild not found'
+    makepkg -g >> ./PKGBUILD               || errorout 'failed updating md5sums'
+    vim ./PKGBUILD                         || errorout 'error editing pkgbuild'
+    rm -rv ./src                           || errorout 'error removing sources'
+    popd &>/dev/null                       || errorout 'unable to change directory'
+    tar cvpzf "$archive" "$packages/$pack" || errorout 'failed to compress archive'
   fi
 
   # prompt to upload
@@ -54,8 +45,6 @@ process() {
 }
 
 parse_options() {
-  # for now, skip basically means not a my-script package i want to get
-  # finer grained control over the process but keep the flags simple
   skip=false
   args=()
 
@@ -72,7 +61,6 @@ parse_options() {
 }
 
 bin="$HOME/.bin"
-sources='/srv/http/aur'
 packages="$HOME/AUR"
 aurpass="$HOME/.aurploader_pass"
 
