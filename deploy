@@ -8,20 +8,22 @@
 ###
 
 errorout() { echo "error: $*" >&2; exit 1; }
-
-# default behavior is to update all static files without wiping the
-# destination first and to let ghc choose which files need recompiling
 message()  { echo 'usage: deploy [ --wipe | --post | --force | --test | --help ]'; exit 1; }
 
 compile_site() {
-  echo 'recompiling the application...'
-  $post  && touch Posts.hs                                         # update just hamlet files
-  $force && find ./ -type f -name '*.hs' -exec touch {} \;         # force recompile of all files
-  $test || sed -i 's/^-- \(#define PRODUCTION\)$/\1/g' Settings.hs # set for production
-  ghc --make -o app.cgi fastcgi.hs || errorout 'failed'            # compile it
-  $test || sed -i 's/^\(#define PRODUCTION\)$/-- \1/g' Settings.hs # revert to development
+  $post  && touch Posts.hs
+  $force && find ./ -type f -name '*.hs' -exec touch {} \;
 
-  # update app.cgi
+  if ! $test; then
+    echo 'recompiling the application for production...'
+    sed -i 's/^-- \(#define PRODUCTION\)$/\1/g' Settings.hs
+    ghc --make -o app.cgi fastcgi.hs || errorout 'failed'
+    sed -i 's/^\(#define PRODUCTION\)$/-- \1/g' Settings.hs
+  else
+    echo 'recompiling the application...'
+    ghc --make -o app.cgi fastcgi.hs || errorout 'failed'
+  fi
+
   mv_file app.cgi
 }
 
@@ -29,11 +31,8 @@ mv_file() {
   local file="$1"
 
   if [[ -e "$file" ]]; then
-    if $test; then
-      cp -r "$file" "$prodsite/" || errorout "$file: failed to copy"
-    else
-      sudo cp -r "$file" "$prodsite/" || errorout "$file: failed to copy"
-    fi
+    $test && cp='cp -r' || cp='sudo cp -r'
+    $cp "$file" "$prodsite/" || errorout "$file: failed to copy"
   else
     echo "omitting $file; does not exist" >&2
   fi
@@ -70,7 +69,8 @@ while [[ -n "$1" ]]; do
                post=false
                test=true
                prodsite="$HOME/http-test"
-               [[ -d "$prodsite" ]] || mkdir "$prodsite"
+               [[ -d "$prodsite" ]] && rm -rf "$prodsite"
+               mkdir -p "$prodsite"
                cp /etc/lighttpd/dev.conf "$prodsite/" ;;
   esac
   shift
@@ -85,16 +85,18 @@ fi
 
 cd "$devsite" || errorout 'failed to change directory'
 
-if $wipe; then
+if ! $test && $wipe; then
   if prompt "this will WIPE $prodsite/*, are you sure"; then
     echo 'wiping destination...'
-    sudo rm -rf "$prodsite/"* || errorout 'failed to wipe destination.'
+    sudo find "$prodsite" -mindepth 1 -maxdepth 1 ! -name 'xmonad' -exec rm -rf {} \; || errorout 'failed to wipe destination.'
   fi
 fi
 
 echo 'updating template files...'
 mv_file hamlet
 mv_file cassius
+mv_file pandoc
+mv_file favicon.ico
 
 if ! $post; then
   echo 'updating static files...'
@@ -111,6 +113,7 @@ else
   echo 'fixing permissions...'
   sudo chown -R http:http "$prodsite"
   sudo chown -R patrick:patrick "$prodsite/static"
+  sudo chown -R patrick:patrick "$prodsite/xmonad"
 
   echo 'starting production services...'
   sudo /etc/rc.d/lighttpd start || errorout 'failed'
