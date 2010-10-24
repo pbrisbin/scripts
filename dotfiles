@@ -58,6 +58,6 @@ for source in $dirty; do
 done
 
 # update git
-cd "$dotfiles"
-git add .
-git commit -m 'auto updated via script'
+#cd "$dotfiles"
+#git add .
+#git commit -m 'auto updated via script'
