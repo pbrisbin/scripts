@@ -88,7 +88,11 @@ cd "$devsite" || errorout 'failed to change directory'
 if ! $test && $wipe; then
   if prompt "this will WIPE $prodsite/*, are you sure"; then
     echo 'wiping destination...'
-    sudo find "$prodsite" -mindepth 1 -maxdepth 1 ! -name 'xmonad' -exec rm -rf {} \; || errorout 'failed to wipe destination.'
+    sudo find "$prodsite" -mindepth 1 \
+                          -maxdepth 1 \
+                        ! -name 'xmonad' \
+                        ! -name 'comments.db' \
+                          -exec rm -rf {} \; || errorout 'failed to wipe destination.'
   fi
 fi
 
