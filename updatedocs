@@ -16,5 +16,5 @@ haddock --no-warnings --html --title="pbrisbin modules" --odir=docs lib/*.hs \
   --source-entity="src/%{MODULE/.//}.html#%{NAME}"
 
 # publish to server
-sudo rm -r /srv/http/xmonad/docs/*
-sudo cp -r ./docs/* /srv/http/xmonad/docs/
+rm -r /srv/http/xmonad/docs/*
+cp -r ./docs/* /srv/http/xmonad/docs/
