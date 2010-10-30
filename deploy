@@ -23,7 +23,7 @@ mv_file() {
   fi
 }
 
-compile_site() {
+compile_app() {
   local dest="$1"
 
   # force ghc to recompile everything
@@ -95,11 +95,11 @@ prod_deploy() {
 
 adjust_permissions() {
   echo 'fixing permissions...'
-  chown root:http "$prodsite"
-  chown -R patrick:http "$prodsite"/*
-  chown http:http "$prodsite/app.cgi"
-  chown http:http "$prodsite/client_session_key.aes"
-  chown http:http "$prodsite/comments.db"
+  sudo chown root:http "$prodsite"
+  sudo chown -R patrick:http "$prodsite"/*
+  sudo chown http:http "$prodsite/app.cgi"
+  sudo chown http:http "$prodsite/client_session_key.aes"
+  sudo chown http:http "$prodsite/comments.db"
 }
 
 # constants
