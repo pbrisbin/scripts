@@ -1,0 +1,8 @@
+#!/bin/bash
+# 
+# this is stupid
+#
+###
+
+artist="$(mpc --format '%title% - %artist%' | head -n 1)"
+echo ${artist,,}
