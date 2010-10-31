@@ -4,5 +4,4 @@
 #
 ###
 
-artist="$(mpc --format '%title% - %artist%' | head -n 1)"
-echo ${artist,,}
+mpc current | sed 's/\(.*\) - \(.*\)/\L\2 - \1/g'
