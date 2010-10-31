@@ -1,25 +1,12 @@
 #!/bin/bash
 #
-# webpreview, pbrisbin 2010
+# pbrisbin 2010
 #
-# http://pbrisbin.com/bin/webpreview
-#
-# see http://pbrisbin.com/pages/webpreview.html for details
+# http://pbrisbin.com/posts/webpreview/
 #
 ###
 
 message() { echo 'usage: webpreview [ --open | --reload ] <file>' >&2; exit 1; }
-
-rel2abs() {
-  local file dir
-
-  file="$(basename "$1")"
-  dir="$(dirname "$1")"
-
-  pushd "${dir:-./}" &>/dev/null || return 1
-  echo "$PWD/$file"
-  popd &>/dev/null
-}
 
 doopen() { uzbl-core "$file_url" &>/dev/null & }
 
@@ -76,8 +63,7 @@ session='/tmp/webpreview.session'
 
 # we can't use the file:// protocol or links to css files, etc won't
 # work correctly; we need to load it through httpd.
-srv_dir='/srv/http'
-srv_url='http://192.168.0.5'
+srv_url='http://pbrisbin.com'
 
 # no use doing this if we're not in X
 [[ -z "$DISPLAY" ]] && exit 0
@@ -86,8 +72,7 @@ srv_url='http://192.168.0.5'
 [[ $# -ne 2 ]] && message
 
 action="$1"
-file="$(rel2abs "$2")"
-file_url="${file/$srv_dir/$srv_url}"
+file_url="$srv_url/posts/$(basename "$2" .pdc)/"
 
 case "$action" in
   --open)   doopen   ;;
