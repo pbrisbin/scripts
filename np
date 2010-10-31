@@ -4,4 +4,5 @@
 #
 ###
 
-mpc current | sed 's/\(.*\) - \(.*\)/\L\2 - \1/g'
+np="$(mpc --format '%title% - %artist%' current)"
+echo ${np,,}
