@@ -29,9 +29,9 @@ compile_app() {
   # force ghc to recompile everything
   $force && find ./ -type f -name '*.hs' -exec touch {} \;
 
-  sed -i 's/^-- \(#define PRODUCTION\)$/\1/g' Settings.hs
+  $test || sed -i 's/^-- \(#define PRODUCTION\)$/\1/g' Settings.hs
   ghc --make -o app.cgi fastcgi.hs || errorout 'failed'
-  sed -i 's/^\(#define PRODUCTION\)$/-- \1/g' Settings.hs
+  $test || sed -i 's/^\(#define PRODUCTION\)$/-- \1/g' Settings.hs
 
 }
 
