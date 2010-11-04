@@ -12,8 +12,8 @@
 SCRIPT_NAME='Aurget'
 SCRIPT_DESCRIPTION='A simple pacman-like interface to the AUR'
 SCRIPT_AUTHOR='Patrick Brisbin <pbrisbin@gmail.com>'
-SCRIPT_VERSION='3.1.2'
-SCRIPT_DATE='10/19/2010'
+SCRIPT_VERSION='3.1.3'
+SCRIPT_DATE='11/4/2010'
 
 # }}}
 
@@ -677,7 +677,7 @@ process_targets() {
     # check in the cache
     pkg="$(find_pkg "$Name" "$Version")"
 
-    if ! $rebuild && [[ -n "$pkg" ]]; then
+    if ! $rebuild && [[ -n "$pkg" ]] && [[ "$sync_mode" = 'install' ]]; then
       # use cached package
       display "Installing cached $pkg..."
     else
