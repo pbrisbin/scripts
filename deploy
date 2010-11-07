@@ -58,7 +58,7 @@ test_deploy() {
   # recompile
   echo 'recompiling the application...'
   compile_app
-  cp_file app.cgi "$testsite"
+  cp_file app.cgi "$testsite/"
 
   # start services
   cd "$testsite"
@@ -78,13 +78,13 @@ prod_deploy() {
 
   # push up to prod
   echo 'updating prod files...'
-  cp_file hamlet "$testsite"
-  cp_file cassius "$testsite"
+  cp_file hamlet "$prodsite/"
+  cp_file cassius "$prodsite/"
 
   # recompile
   echo 'recompiling the application...'
   compile_app
-  cp_file app.cgi "$prodsite"
+  cp_file app.cgi "$prodsite/"
 
   adjust_permissions
 
