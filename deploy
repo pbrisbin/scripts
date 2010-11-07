@@ -10,7 +10,7 @@
 errorout() { echo "error: $*" >&2; exit 1; }
 message()  { echo 'usage: deploy [ --force | --test | --help ]'; exit 1; }
 
-mv_file() {
+cp_file() {
   local file="$1" dest="$2" _cp
 
   # need sudo to write to /srv/http
@@ -42,15 +42,15 @@ test_deploy() {
 
   # pull files down from prod
   echo 'updating test files from prod...'
-  mv_file "$prodsite/pandoc" "$testsite"
-  mv_file "$prodsite/xmonad" "$testsite"
-  mv_file "$prodsite/static" "$testsite"
-  mv_file "$prodsite/favicon.ico" "$testsite"
+  cp_file "$prodsite/pandoc" "$testsite/"
+  cp_file "$prodsite/xmonad" "$testsite/"
+  cp_file "$prodsite/static" "$testsite/"
+  cp_file "$prodsite/favicon.ico" "$testsite/"
 
   # push files up from dev
   echo 'updating test files from dev...'
-  mv_file hamlet "$testsite"
-  mv_file cassius "$testsite"
+  cp_file hamlet "$testsite/"
+  cp_file cassius "$testsite/"
 
   # setup lighttpd for local instance
   cp /etc/lighttpd/dev.conf "$testsite/"
@@ -58,7 +58,7 @@ test_deploy() {
   # recompile
   echo 'recompiling the application...'
   compile_app
-  mv_file app.cgi "$testsite"
+  cp_file app.cgi "$testsite"
 
   # start services
   cd "$testsite"
@@ -78,13 +78,13 @@ prod_deploy() {
 
   # push up to prod
   echo 'updating prod files...'
-  mv_file hamlet "$testsite"
-  mv_file cassius "$testsite"
+  cp_file hamlet "$testsite"
+  cp_file cassius "$testsite"
 
   # recompile
   echo 'recompiling the application...'
   compile_app
-  mv_file app.cgi "$prodsite"
+  cp_file app.cgi "$prodsite"
 
   adjust_permissions
 
@@ -114,9 +114,9 @@ test=false
 # getopts
 while [[ -n "$1" ]]; do
   case "$1" in
-    -h|--help)  message    ;;
     -f|--force) force=true ;;
     -t|--test)  test=true  ;;
+    *)          message    ;;
   esac
   shift
 done
