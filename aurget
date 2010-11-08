@@ -137,57 +137,58 @@ clear_temp() {
 
 # message {{{
 message() {
-  echo 'usage: aurget [ -v | -h | -S* [ --options ] [ -- ] <arguments> ]'
-  echo
-  echo '  options:'
-  echo
-  echo '        -S  <package>   process <package> using your default sync_mode'
-  echo
-  echo '        -Sd <package>   download <package>'
-  echo '        -Sb <package>   download and build <package>'
-  echo '        -Sy <package>   download, build, and install <package>'
-  echo
-  echo '        -Su             process available upgrades using your default sync_mode'
-  echo
-  echo '        -Sdu            download available upgrades'
-  echo '        -Sbu            download and build available upgrades'
-  echo '        -Syu            download, build, and install available upgrades'
-  echo
-  echo '        -Ss  <term>     search aur for <term>'
-  echo '        -Ssq <term>     search aur for <term>, print only package names'
-  echo '        -Sp  <package>  print the PKGBUILD for <package>'
-  echo '        -Si  <package>  print extended info for <package>'
-  echo
-  echo '        --rebuild       always rebuild (ignore your cache)'
-  echo
-  echo '        --devel         used with -Su to upgrade all development packages'
-  echo
-  echo '        --deps          resolve dependencies'
-  echo '        --nodeps        don'\''t resolve dependencies'
-  echo
-  echo '        --edit          prompt to edit all pkgbuilds'
-  echo '        --noedit        don'\''t prompt to edit any pkgbuilds'
-  echo
-  echo '        --discard       discard source files after building'
-  echo '        --nodiscard     don'\''t discard source files after building'
-  echo
-  echo '        --nocolor       disable colorized output'
-  echo '        --noconfirm     auto-answer y to all prompts'
-  echo
-  echo '        --ignore '\''<package> <package> <...>'\'''
-  echo '                        add additional packages to be ignored'
-  echo
-  echo '        --mopt '\''-opt -opt ...'\'''
-  echo '                        add additional options to the build command'
-  echo
-  echo '        --popt '\''-opt -opt ...'\'''
-  echo '                        add additional options to the install command'
-  echo
-  echo '        -v, --version   display version info'
-  echo '        -h, --help      display this'
-  echo
-  echo '        --option=value  set config <option> as <value> for this run only'
-  echo
+  cat << EOF
+usage: aurget [ -v | -h | -S* [ --options ] [ -- ] <arguments> ]
+  options:
+
+        -S  <package>   process <package> using your default sync_mode
+
+        -Sd <package>   download <package>
+        -Sb <package>   download and build <package>
+        -Sy <package>   download, build, and install <package>
+
+        -Su             process available upgrades using your default sync_mode
+
+        -Sdu            download available upgrades
+        -Sbu            download and build available upgrades
+        -Syu            download, build, and install available upgrades
+
+        -Ss  <term>     search aur for <term>
+        -Ssq <term>     search aur for <term>, print only package names
+        -Sp  <package>  print the PKGBUILD for <package>
+        -Si  <package>  print extended info for <package>
+
+        --rebuild       always rebuild (ignore your cache)
+
+        --devel         used with -Su to upgrade all development packages
+
+        --deps          resolve dependencies
+        --nodeps        don't resolve dependencies
+
+        --edit          prompt to edit all pkgbuilds
+        --noedit        don't prompt to edit any pkgbuilds
+
+        --discard       discard source files after building
+        --nodiscard     don't discard source files after building
+
+        --nocolor       disable colorized output
+        --noconfirm     auto-answer y to all prompts
+
+        --ignore '<package> <package> <...>'
+                        add additional packages to be ignored
+
+        --mopt '-opt -opt ...'
+                        add additional options to the build command
+
+        --popt '-opt -opt ...'
+                        add additional options to the install command
+
+        -v, --version   display version info
+        -h, --help      display this
+
+        --option=value  set config <option> as <value> for this run only
+
+EOF
 
   clean_exit 1
 }
@@ -196,13 +197,15 @@ message() {
 
 # version_info {{{
 version_info() {
-  echo
-  echo "  $SCRIPT_NAME: $SCRIPT_DESCRIPTION"
-  echo
-  echo "  author:      $SCRIPT_AUTHOR"
-  echo "  version:     $SCRIPT_VERSION"
-  echo "  last update: $SCRIPT_DATE"
-  echo
+  cat << EOF
+
+  $SCRIPT_NAME: $SCRIPT_DESCRIPTION
+  
+  author:      $SCRIPT_AUTHOR
+  version:     $SCRIPT_VERSION
+  last update: $SCRIPT_DATE
+
+EOF
 
   clean_exit
 }
