@@ -6,24 +6,24 @@
 #
 # cando will tell you if a specific user can perform a specific action
 # on a file or directory. it does this not just by checking ownership
-# and permissions but also verifing that the user can enter each of the
+# and permissions but also verifying that the user can enter each of the
 # parent directories required to even get to the file in question.
 #
 # examples:
 #
 #  //blue/0/~/ cando mpd Music/
-#  cando:  ---  /home/patrick/Music/
+#  cando:  d---  /home/patrick/Music/
 #
 #  //blue/0/~/ cando http /srv/http/*
-#  cando:  rwx  /srv/http/app.cgi
-#  cando:  r-x  /srv/http/cassius
-#  cando:  rw-  /srv/http/client_session_key.aes
-#  cando:  rw-  /srv/http/comments.db
-#  cando:  r--  /srv/http/favicon.ico
-#  cando:  r-x  /srv/http/hamlet
-#  cando:  r-x  /srv/http/pandoc
-#  cando:  r-x  /srv/http/static
-#  cando:  r-x  /srv/http/xmonad
+#  cando:  -rwx  /srv/http/app.cgi
+#  cando:  dr-x  /srv/http/cassius
+#  cando:  -rw-  /srv/http/client_session_key.aes
+#  cando:  -rw-  /srv/http/comments.db
+#  cando:  -r--  /srv/http/favicon.ico
+#  cando:  dr-x  /srv/http/hamlet
+#  cando:  dr-x  /srv/http/pandoc
+#  cando:  dr-x  /srv/http/static
+#  cando:  dr-x  /srv/http/xmonad
 #
 ###
 
@@ -90,6 +90,9 @@ process_file() {
   fi
 
   echo -n 'cando:  '
+
+  [[ -d "$file" ]] && echo -n 'd' || echo -n '-'
+
   if can_access "$file"; then
     set_info "$file"
     can_read  && echo -n 'r' || echo -n '-'
@@ -103,7 +106,7 @@ process_file() {
 
 # get options
 parse_options() {
-  [[ "$#" -lt 3 ]] && message
+  [[ "$#" -lt 2 ]] && message
   user="$1"; shift
   grep -q "^$user" /etc/passwd || errorout "$user: user does not exist"
   files=( "$@" )
