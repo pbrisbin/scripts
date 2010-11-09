@@ -1,23 +1,12 @@
 #!/bin/bash
 #
-# goodsong v2.1
+# goodsong: maintain a list of favourite songs.
 #
 # pbrisbin 2009, 2010
 #
-# http://pbrisbin.com/bin/goodsong
-#
-# 5/9/2010 patched by TomVincent to add:
-#
-#  * use of heredoc in message
-#  * locateMPDConf()
-#  * mpdParam()
-#  * default list as an actual playlist
-#  
-# 9/27/2010 patched by Christian
-#
-#  * add whitespace to pgrep command (prevents bad match on mpdscribble)
-#
-###
+# Contributors:
+# Tom Vincent <http://www.tlvince.com/contact/>
+# Christian
 
 message() {
   cat << EOF
@@ -44,20 +33,12 @@ usage: goodsong [option]
         none              append playing song to list
 
 EOF
-
-  exit 1
 }
 
-# tvincent 5/9/2010 +
 # Return the mpd.conf passed as a parameter to mpd or an expected default
 locateMPDConf() {
   # Don't use any command that overrides the "real" mpd binary
-
-  # christian 9/27/2010 + add an additional space so as not to match
-  # "/usr/bin/mpdscribble" too
-  #local config="$(pgrep -fl $(which --skip-tilde mpd) | awk '{print $3}')"
   local config="$(pgrep -fl $(which --skip-tilde mpd)\  | awk '{print $3}')"
-  # christian 9/27/2010 -
 
   if [[ -z $config ]]; then
     if [[ -r "$HOME/.mpd/mpd.conf" ]]; then
@@ -65,29 +46,24 @@ locateMPDConf() {
     elif [[ -r '/etc/mpd.conf' ]]; then
       config='/etc/mpd.conf'
     else
-      echo 'unable to locate a readable mpd.conf' >&2
-      exit 1
+      _die "unable to locate a readable mpd.conf"
     fi
   fi
 
   echo "$config"
 }
 
-# tvincent 5/9/2010 +
-# From the given regex ($1), find the relevant mpd.conf parameter
+# From the given regex ($1), find the relevant mpd.conf property value
 mpdParam() {
-  if [[ -z "$1" ]]; then
-    echo 'illegal function call: mpdParam()' >&2
-    exit 1
-  fi
+  local param="$(_iniParser "$1" "$(locateMPDConf)")"
+  [[ -z $param ]] && _die "'$1' is an invalid mpd.conf property key"
+  echo "${param/\~/$HOME}"   # translate '~' to '$HOME'
+}
 
-  local mpdconf="$(locateMPDConf)" param
-
-  # locates parameter values where value can be single, double, or
-  # un-quoted -- also translate ~ to $HOME
-  param="$(sed -r '/^'"$1"' *(\"|'\''|)([^\1]*)\1/!d; s//\2/g; s%~%'"$HOME"'%g' "$mpdconf")"
-
-  echo "$param"
+# From the given property key ($1), lookup the value in the given ini file ($2),
+# where value can be single, double, or un-quoted.
+_iniParser() {
+    sed -r '/^'"$1"' *(\"|'\''|)([^\1]*)\1/!d; s//\2/g' "$2"
 }
 
 # just prints your list with the music dir prepended (for easy piping, etc)
@@ -100,8 +76,8 @@ printlist() {
 get_pos() {
   local track="$(cat $list | sort -R | head -n 1)" pos
 
-  #pos=$(mpc --format '%position% %file%' playlist | grep "[0-9]*\ $track$" | awk '{print $1}' | head -n 1)
-  pos=$(mpc --format '%position% %file%' playlist | awk "/[0-9]* ${track//\//\\/}$/"'{print $1}' | head -n 1)
+  pos=$(mpc --format '%position% %file%' playlist | \
+        awk "/[0-9]* ${track//\//\\/}$/"'{print $1}' | head -n 1)
 
   if [[ -z "$pos" ]]; then
     mpc add "$track"
@@ -135,17 +111,8 @@ get_lag() {
   fi
 }
 
-# build a playlist and play it; could probably just use mpc load
-# playlist command here at this point...
-build_playlist() {
-  local IFS=$'\n'
-
-  mpc clear >/dev/null
-  while read -r; do
-    mpc add "$REPLY"
-  done < <(sort -R "$list")
-  mpc play
-}
+# build a playlist and play it
+build_playlist() { mpc load goodsongs; mpc play; }
 
 # add current song to the list
 add_to_list() {
@@ -163,7 +130,7 @@ add_to_list() {
 smart_play() { (sleep $(get_lag) && mpc play $(get_pos) &>/dev/null) & }
 
 # show one random good song
-show_one() { sort -R "$list" | head -n 1; }
+show_one() { shuf -n1 "$list"; }
 
 # play a random good song
 play_one() { mpc play $(get_pos); }
@@ -171,9 +138,11 @@ play_one() { mpc play $(get_pos); }
 # search the list
 search_list() { grep -i "$*" "$list"; }
 
+_die() { echo "$1" >&2 && exit 1; }
+
 parse_options() {
   case "$1" in
-    -h|--help)  message                 ;;
+    -h|--help)  message && exit 1       ;;
     -s|--show)  show_one                ;;
     -f|--find)  shift; search_list "$*" ;;
     -p|--play)  play_one                ;;
@@ -184,8 +153,9 @@ parse_options() {
   esac
 }
 
-# tvincent 5/9/2010 +
 list="$(mpdParam 'playlist_directory')/goodsongs.m3u"
-touch "$list" || exit 1
+touch "$list" 2>/dev/null || _die 'unable to write playlist file'
 
 parse_options "$@"
+
+# vim: set ts=2 sw=2 :
