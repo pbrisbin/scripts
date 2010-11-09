@@ -5,8 +5,12 @@
 # pbrisbin 2009, 2010
 #
 # Contributors:
-# Tom Vincent <http://www.tlvince.com/contact/>
-# Christian
+#   Tom Vincent <http://www.tlvince.com/contact/>
+#   Christian
+#
+###
+
+errorout() { echo "$*" >&2; exit 1; }
 
 message() {
   cat << EOF
@@ -46,24 +50,24 @@ locateMPDConf() {
     elif [[ -r '/etc/mpd.conf' ]]; then
       config='/etc/mpd.conf'
     else
-      _die "unable to locate a readable mpd.conf"
+      errorout "unable to locate a readable mpd.conf"
     fi
   fi
 
   echo "$config"
 }
 
-# From the given regex ($1), find the relevant mpd.conf property value
-mpdParam() {
-  local param="$(_iniParser "$1" "$(locateMPDConf)")"
-  [[ -z $param ]] && _die "'$1' is an invalid mpd.conf property key"
-  echo "${param/\~/$HOME}"   # translate '~' to '$HOME'
-}
-
 # From the given property key ($1), lookup the value in the given ini file ($2),
 # where value can be single, double, or un-quoted.
-_iniParser() {
+confParser() {
     sed -r '/^'"$1"' *(\"|'\''|)([^\1]*)\1/!d; s//\2/g' "$2"
+}
+
+# From the given regex ($1), find the relevant mpd.conf property value
+mpdParam() {
+  local param="$(confParser "$1" "$(locateMPDConf)")"
+  [[ -z $param ]] && errorout "'$1' is an invalid mpd.conf property key"
+  echo "${param/\~/$HOME}"   # translate '~' to '$HOME'
 }
 
 # just prints your list with the music dir prepended (for easy piping, etc)
@@ -138,8 +142,6 @@ play_one() { mpc play $(get_pos); }
 # search the list
 search_list() { grep -i "$*" "$list"; }
 
-_die() { echo "$1" >&2 && exit 1; }
-
 parse_options() {
   case "$1" in
     -h|--help)  message && exit 1       ;;
@@ -154,7 +156,7 @@ parse_options() {
 }
 
 list="$(mpdParam 'playlist_directory')/goodsongs.m3u"
-touch "$list" 2>/dev/null || _die 'unable to write playlist file'
+touch "$list" 2>/dev/null || errorout 'unable to write playlist file'
 
 parse_options "$@"
 
