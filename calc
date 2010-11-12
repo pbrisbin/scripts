@@ -1,0 +1,17 @@
+#!/bin/bash
+#
+# pbrisbin 2010
+#
+# moved to its own script so i can call it from irssi
+#
+###
+
+message() { echo 'usage: calc <expr>'; exit 1; }
+
+[[ -z "$*" ]] && message
+
+if which bc &>/dev/null; then
+  echo "scale=10; $*" | bc -l
+else
+  awk "BEGIN { print $* }"
+fi
