@@ -4,17 +4,59 @@
 #
 ###
 
+message() { echo 'usage: dotfiles [ pull ]'; exit 1; }
+
 errorout() { echo "$*" >&2; exit 1; }
 
-# location of git controlled dotfiles
+do_pull() {
+  local source
+
+  # clone the git files into .dotfiles
+  git clone git@github.com:pbrisbin/dotfiles.git "$dotfiles"
+
+  cd "$dotfiles" || errorout 'failed to change directory'
+
+  # copy any existing clean dotfiles into their actual locations
+  for source in $clean; do
+    if [[ -f "$HOME/$source" ]]; then
+      cp "$source" "$HOME/$source"
+    fi
+  done
+}
+
+do_push() {
+  local source
+
+  # get sed scrubme pattern from a mod 600 cred file
+  . "$HOME/.credentials"
+
+  # if we don't now know what to scrub, GTFO
+  [[ -z "$scrubme" ]] && errorout 'scrub pattern not found'
+
+  cd "$HOME" || errorout 'failed to change directory'
+
+  for source in $clean; do
+    if [[ -f "$HOME/$source" ]]; then
+      dest="$dotfiles/${source}"
+      cp "$HOME/$source" "$dest"
+    fi
+  done
+
+  for source in $dirty; do
+    if [[ -f "$HOME/$source" ]]; then
+      dest="$dotfiles/${source}"
+      sed "$scrubme" "$HOME/$source" > "$dest"
+    fi
+  done
+}
+
+# local dotfiles
 dotfiles="$HOME/.dotfiles"
 
-# get sed scrubme pattern from a mod 600 cred file
-. /home/patrick/.credentials
+# clonable url once pushed
+remote='git@github.com:pbrisbin/dotfiles.git'
 
-# if we don't now know what to scrub, GTFO
-[[ -z "$scrubme" ]] && errorout 'scrub pattern not found'
-
+# can be copied as-is
 clean='.bashrc
        .Xdefaults
        .xcolors/zenburn.xcolors
@@ -32,6 +74,7 @@ clean='.bashrc
        .ncmpcpp/config
        .irssi/my.theme'
 
+# must be scrubbed
 dirty='.mutt/muttrc
        .mutt/gmx.muttrc
        .mutt/gmail.muttrc
@@ -41,23 +84,10 @@ dirty='.mutt/muttrc
        .msmtprc
        .irssi/config'
 
-# copy clean dotfiles
-for source in $clean; do
-  if [[ -f "/home/patrick/$source" ]]; then
-    dest="$dotfiles/${source}"
-    cp "/home/patrick/$source" "$dest"
-  fi
-done
-
-# copy dirty dotfiles
-for source in $dirty; do
-  if [[ -f "/home/patrick/$source" ]]; then
-    dest="$dotfiles/${source}"
-    sed "$scrubme" "/home/patrick/$source" > "$dest"
-  fi
-done
-
-# update git
-#cd "$dotfiles"
-#git add .
-#git commit -m 'auto updated via script'
+if [[ -n "$1" ]]; then
+  # allow client-side pulls
+  [[ "$1" = 'pull' ]] && do_pull || message
+else
+  # default is push
+  do_push
+fi
