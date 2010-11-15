@@ -12,8 +12,8 @@
 SCRIPT_NAME='Aurget'
 SCRIPT_DESCRIPTION='A simple pacman-like interface to the AUR'
 SCRIPT_AUTHOR='Patrick Brisbin <pbrisbin@gmail.com>'
-SCRIPT_VERSION='3.1.4'
-SCRIPT_DATE='11/8/2010'
+SCRIPT_VERSION='3.1.5'
+SCRIPT_DATE='11/15/2010'
 
 # }}}
 
@@ -79,6 +79,9 @@ print_array() {
 
   for x in "$@"; do echo $x; done
 }
+
+# check for development
+is_devel() { echo "$1" | grep -q -- "$development_regex"; }
 
 # called before sourcing config or on --nocolor
 set_nocolor() {
@@ -264,7 +267,8 @@ try_discard() {
   $dont_discard_devels && $devels && return
 
   # we keep devels and this is a devel package
-  $dont_discard_devels && echo ${1##*/} | grep -q -- "$development_regex" && return
+  #$dont_discard_devels && echo ${1##*/} | grep -q -- "$development_regex" && return
+  $dont_discard_devels && is_devel ${1##*/} && return
 
   # use find -delete incase the built package is still in the directory
   display "Discarding sources..."
@@ -370,10 +374,12 @@ upgrade() {
   while read -r name vers; do
     if $devels; then
       # do only devel packages
-      echo $name | grep -q -- "$development_regex" || continue
+      #echo $name | grep -q -- "$development_regex" || continue
+      is_devel $name || continue
     else
       # skip all devel packages
-      echo $name | grep -q -- "$development_regex" && continue
+      #echo $name | grep -q -- "$development_regex" && continue
+      is_devel $name && continue
     fi
 
     # available version 
@@ -680,7 +686,8 @@ process_targets() {
     # check in the cache
     pkg="$(find_pkg "$Name" "$Version")"
 
-    if ! $rebuild && [[ -n "$pkg" ]] && [[ "$sync_mode" = 'install' ]]; then
+    #if ! $rebuild && [[ -n "$pkg" ]] && [[ "$sync_mode" = 'install' ]]; then
+    if ! $rebuild && [[ -n "$pkg" ]] && [[ "$sync_mode" = 'install' ]] && ! is_devel "$pkg"; then
       # use cached package
       display "Installing cached $pkg..."
     else
