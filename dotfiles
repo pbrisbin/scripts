@@ -12,7 +12,7 @@ do_pull() {
   local source
 
   # clone the git files into .dotfiles
-  git clone git@github.com:pbrisbin/dotfiles.git "$dotfiles"
+  git clone "$remote" "$dotfiles"
 
   cd "$dotfiles" || errorout 'failed to change directory'
 
@@ -54,7 +54,7 @@ do_push() {
 dotfiles="$HOME/.dotfiles"
 
 # clonable url once pushed
-remote='git@github.com:pbrisbin/dotfiles.git'
+remote='git://github.com/pbrisbin/scripts.git'
 
 # can be copied as-is
 clean='.bashrc
