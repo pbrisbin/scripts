@@ -9,7 +9,7 @@ message() { echo 'usage: dotfiles [ pull ]'; exit 1; }
 errorout() { echo "$*" >&2; exit 1; }
 
 ignore_file() {
-  [[ ! -f "$ignores" ]] && return 0
+  [[ ! -f "$ignores" ]] && return 1
 
   grep -Fqx "$1" "$ignores"
 }
@@ -17,11 +17,13 @@ ignore_file() {
 do_pull() {
   local source
 
-  # just easier this way
-  [[ -d "$dotfiles" ]] && rm -rf "$dotfiles"
-
-  # clone the git files into .dotfiles
-  git clone "$remote" "$dotfiles"
+  if [[ -d "$dotfiles" ]]; then
+    # update local files
+    cd $dotfiles && git pull origin
+  else
+    # clone from remote
+    git clone "$remote" "$dotfiles"
+  fi
 
   cd "$dotfiles" || errorout 'failed to change directory'
 
