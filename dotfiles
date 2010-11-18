@@ -8,8 +8,17 @@ message() { echo 'usage: dotfiles [ pull ]'; exit 1; }
 
 errorout() { echo "$*" >&2; exit 1; }
 
+ignore_file() {
+  [[ ! -f "$ignores" ]] && return 0
+
+  grep -Fqx "$1" "$ignores"
+}
+
 do_pull() {
   local source
+
+  # just easier this way
+  [[ -d "$dotfiles" ]] && rm -rf "$dotfiles"
 
   # clone the git files into .dotfiles
   git clone "$remote" "$dotfiles"
@@ -18,8 +27,8 @@ do_pull() {
 
   # copy any existing clean dotfiles into their actual locations
   for source in $clean; do
-    if [[ -f "$HOME/$source" ]]; then
-      cp "$source" "$HOME/$source"
+    if [[ -f "$HOME/$source" ]] && ! ignore_file "$source"; then
+      cp -v "$source" "$HOME/$source"
     fi
   done
 }
@@ -54,7 +63,11 @@ do_push() {
 dotfiles="$HOME/.dotfiles"
 
 # clonable url once pushed
-remote='git://github.com/pbrisbin/scripts.git'
+remote='git://github.com/pbrisbin/dotfiles.git'
+
+# in each client, put one file per line in a file to ignore it during a
+# pull operation
+ignores="$HOME/.dotfile_ignores"
 
 # can be copied as-is
 clean='.bashrc
