@@ -42,7 +42,7 @@ burn_files() {
 
   logger "burning ${#burn_now[@]} files..."
 
-  # http://pbrisbin.com/bin/burn
+  # http://github.com/pbrisbin/scripts/blob/master/burn
   burn "${burn_now[@]}" || errorout 'burn failed'
 
   return 0

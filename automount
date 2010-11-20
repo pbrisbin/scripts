@@ -2,8 +2,6 @@
 #
 # pbrisbin 2009, 2010
 #
-# http://pbrisbin.com/bin/automount
-#
 # just moves a rules file about to change udev behavior regarding the
 # automounting of usb devices. 
 #

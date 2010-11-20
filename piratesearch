@@ -4,8 +4,6 @@
 #
 # cli interface to thepiratebay.org
 #
-# http://pbrisbin.com/bin/piratesearch
-#
 ###
 
 message() {

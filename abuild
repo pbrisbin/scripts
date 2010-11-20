@@ -2,8 +2,6 @@
 #
 # pbrisbin 2009
 #
-# http://pbrisbin.com/bin/abuild
-#
 # quickly [re]build packages via ABS
 #
 # assumes your abs tree is synced ahead of time

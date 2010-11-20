@@ -2,8 +2,6 @@
 #
 # pbrisbin 2010
 #
-# http://pbrisbin.com/bin/browser
-#
 # set this as $BROWSER and/or URxvt.urlLauncher in .Xdefaults to quickly
 # mess with your default browser without reloading anything
 #

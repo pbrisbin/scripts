@@ -2,8 +2,6 @@
 #
 # pbrisbin 2009
 #
-# http://pbrisbin.com/bin/downgrade
-#
 # downgrade one or more packages from cache or A.R.M.
 #
 # updated to properly validate input and handle downgrading

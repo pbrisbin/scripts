@@ -33,8 +33,6 @@ write_template() {
 #
 # pbrisbin $(date +%Y)
 #
-# http://pbrisbin.com/bin/$name
-#
 ###
 
 errorout() { echo "error: \$*" >&2; exit 1; }

@@ -2,8 +2,6 @@
 #
 # pbrisbin 2010
 #
-# http://pbrisbin.com/bin/updatehosts
-#
 # this script automatically writes an /etc/hosts file with the proper
 # localhost line, some individual lan ip lines as per lanip[], and a
 # comprehensive blacklist file downloaded from someonewhocares.org

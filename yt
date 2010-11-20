@@ -2,8 +2,6 @@
 #
 # pbrisbin 2010
 #
-# http://pbrisbin.com/bin/yt
-#
 ###
 
 errorout() { echo "error $*" >&2; exit 1; }

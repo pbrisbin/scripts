@@ -2,10 +2,7 @@
 #
 # pbrisbin 2009
 #
-# http://pbrisbin.com/bin/renamer
-#
-# take a retardedly named file or directory and rename it
-# sanely
+# take a retardedly named file or directory and rename it sanely
 #
 # adjust translate() as needed
 #

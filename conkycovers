@@ -4,8 +4,6 @@
 #
 # note: covers are kept at ~/Music/artist/album/folder.jpg
 #
-# http://pbrisbin.com/bin/conkycovers
-#
 # simply add this to conkyrc:
 #
 #   imlib_cache_size 0

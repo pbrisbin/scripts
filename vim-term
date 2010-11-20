@@ -2,10 +2,7 @@
 #
 # pbrisbin 2010
 #
-# http://pbrisbin.com/bin/vim-term
-#
-# makes a one word executable to open vim
-# in a new terminal
+# makes a one word executable to open vim in a new terminal
 #
 ###
 

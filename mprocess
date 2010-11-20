@@ -2,8 +2,6 @@
 #
 # pbrisbin 2010
 #
-# http://pbrisbin.com/bin/mprocess
-#
 # take a folder of recently downloaded music and process it into a
 # folder structure/naming convention that suits my OCD-ness
 #
@@ -167,7 +165,7 @@ fi
 prompt "remove $orig" && rm -r "$orig"
 prompt 'update mpd db' && mpc update &>/dev/null
 
-# http://pbrisbin.com/bin/coverart
-if prompt 'update covers in background'; then
-  coverart &>/dev/null &
-fi
+# http://github.com/pbrisbin/scripts/blob/master/coverart
+#if prompt 'update covers in background'; then
+#  coverart &>/dev/null &
+#fi

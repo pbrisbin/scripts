@@ -2,8 +2,6 @@
 #
 # pbrisbin 2009
 #
-# http://pbrisbin.com/bin/archive
-#
 ###
 
 message() { echo 'archive (-f) [ -x (-t <directory>) (--) <archive> ... | (-t <archive>) (--) <directory> ... ]'; exit 1; }

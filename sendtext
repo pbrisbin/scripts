@@ -2,15 +2,14 @@
 #
 # sendtext
 #
-# a commandline text sender to a number of carriers with
-# quasi-phonebook support -- uses existing mail binary
-# to send the message
+# a commandline text sender to a number of carriers with quasi-phonebook
+# support -- uses existing mail binary to send the message
 #
 # pbrisbin 2010
 #
-# brisbin v3: http://pbrisbin.com/bin/sendtext             added phonebook/multi-text
-# ghost   v2: http://pasteit.ghost1227.com/162             added carriers
-# brisbin v1: http://pbrisbin.com/pages/text_from_cli.html verizon only
+# brisbin v3: http://github.com/pbrisbin/scripts/blob/master/sendtext added phonebook/multi-text
+# ghost   v2: http://pasteit.ghost1227.com/162                        added carriers
+# brisbin v1: http://pbrisbin.com/pages/text_from_cli.html            verizon only
 #
 ###
 

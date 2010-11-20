@@ -2,8 +2,6 @@
 #
 # pbrisbin 2010
 #
-# http://pbrisbin.com/bin/mktorrents
-#
 # accepts any number of files as arguments. create a symlink in a data
 # directory, then create a torrent for the symlinked file which will
 # automatically start in the running rtorrent session.

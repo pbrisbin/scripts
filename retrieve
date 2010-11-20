@@ -2,9 +2,6 @@
 #
 # pbrisbin 2009
 #
-# http://pbrisbin.com/bin/retrieve
-#
-#
 ###
 
 message()  { echo 'usage: retrieve [ -m ] <file>'; exit 1; }

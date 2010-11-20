@@ -2,10 +2,8 @@
 #
 # pbrisbin 2010
 #
-# http://pbrisbin.com/bin/updategoodsong
-#
-# run periodically via to update the goodsong.m3u on my htpc with the
-# one present here
+# run periodically to update the goodsong.m3u on my htpc with the one
+# present here
 #
 ###
 

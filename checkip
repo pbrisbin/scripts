@@ -2,8 +2,6 @@
 #
 # pbrisbin 2009
 #
-# http://pbrisbin.com/bin/checkip
-#
 ###
 
 logger() { echo "$(date +'[ %d %b %Y %H:%M ]') $*" | tee -a "$log"; }

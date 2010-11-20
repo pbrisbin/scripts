@@ -1,13 +1,10 @@
 #!/bin/bash
 #
-# http://pbrisbin.com/bin/playnow
+# allows playing of any file or files through mpd without actually
+# adding them to your collection
 #
-# allows playing of any file or files through
-# mpd without actually adding them to your
-# collection
-#
-# creates symlinks from the file(s) to Music/temp
-# updates, appends to playlist, and plays
+# creates symlinks from the file(s) to Music/temp updates, appends to
+# playlist, and plays
 #
 # supports adding multiple files (sumdir/*)
 #
@@ -42,8 +39,7 @@ clean_temp() { [[ -d "$1" ]] && rm -r "$1"; mkdir -p "$1"; }
 # creates link $2 -> $1
 link_files() { [[ ! -L "$2" ]] && ln -s "$1" "$2"; }
 
-# updates the db, waits, appends the temp files to the
-# current playlist
+# updates the db, waits, appends the temp files to the current playlist
 update_and_add() {
   mpc --wait --no-status update "$1" || return 1
   mpc --no-status add "$1"           || return 1

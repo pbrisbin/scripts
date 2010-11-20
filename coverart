@@ -2,8 +2,6 @@
 #
 # pbrisbin 2010
 #
-# http://pbrisbin.com/bin/coverart
-#
 # can use audiotag (+atomicparsley for m4a support) or mpc to read tags;
 # make your choice 'round about line 23/25
 #
