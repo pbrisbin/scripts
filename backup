@@ -23,9 +23,10 @@ media_includes=(/mnt/data1/Rips /mnt/data2/Movies /mnt/data2/TV_shows)
 media_excludes=(converted)
 
 if [[ "$1" = '--media' ]]; then
-  # do a media compression and exit
-  echo "compressing media to $backup_media/media.tbz2"
-  tar cpjf "$backup_media/media.tbz2" ${media_excludes[@]/#/--exclude } "${media_includes[@]}"
+  # do a media backup and exit
+  [[ -f "$backup_media/.lock" ]] || errorout "$backup_media/.lock not found, is it mounted?"
+  echo "syncing media to $backup_media/media.tbz2"
+  rsync -a -l --delete --delete-excluded "${media_includes[@]}" ${media_excludes[@]/#/--exclude } "$backup_media/"
   exit $?
 fi
 
