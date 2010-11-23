@@ -1,0 +1,118 @@
+#!/bin/bash
+#
+# pbrisbin 2010
+#
+# if you custom-compile any apps using abs, add them to a watchlist
+# using `watchabs -a $pkg`, then you can call `watchabs -c` (or -C) to
+# periodically check if the there's a newer version available.
+#
+# stdout is a simple list of packages or nothing. should make it easy to
+# use this as the input to an auto-rebuild script or something.
+#
+# the abs tree usually lags behind mirrors by about a day, so watching
+# the normal -Syu output for availability can give false positives.
+#
+# todo: allow watching a `<repo>/<pkg>'
+#
+###
+
+errorout() { echo "error: $*" >&2; exit 1; }
+
+message() {
+  cat << EOF
+  usage: watchabs [ -a <pkg> ... | -c | -C ]
+
+    options:
+      -a, --add <pkg> ...  add <pkg> to the watch list
+      -c, --check          check for available updates to watched pkgs
+      -C, --update-check   same as --check but run \`sudo abs\` first
+
+EOF
+
+  exit 1
+}
+
+# check each repo in order, break when a package is found, source and
+# return the full package version
+version_abs() {
+  local pkg="$1" repo pkgbuild
+
+  for repo in $(enabled_repos); do
+    pkgbuild="$abs_tree/$repo/$pkg/PKGBUILD"
+
+    if [[ -f "$pkgbuild" ]]; then
+      . "$pkgbuild"
+      echo $pkgver-$pkgrel
+      break
+    fi
+  done
+
+  echo ''
+}
+
+# return the enabled repos in the order they should be searched based on
+# what's in pacman.conf
+enabled_repos() { sed '/^\[\(.*\)\]$/!d;s//\1/g;/options/d' /etc/pacman.conf; }
+
+# compare a single package's installed version with the one available
+# right now via ABS
+compare_versions() {
+  local pkg="$1" v_abs
+
+  v_abs="$(version_abs "$pkg")"
+
+  if [[ -z "$v_abs"  ]]; then
+    echo "$pkg: not found in abs repo" >&2
+    return
+  fi
+
+  # note: an uninstalled package will always show up as 'update
+  # available'
+  [[ $(vercmp $v_abs $(pacman -Q "$pkg" | cut -d ' ' -f 2)) -gt 0 ]] && echo "$pkg"
+}
+
+# add one or more pkgnames to the watch list
+add() {
+  local pkg
+
+  touch "$db" || errorout 'unable to create watchlist'
+  for pkg in "$@"; do
+    grep -Fqx "$pkg" "$db" || echo $pkg >> "$db"
+  done
+}
+
+# check all packages in the watch list for available updates
+check() {
+  if [[ -f "$db" ]]; then
+    while IFS=$'\n' read -r pkg; do
+      compare_versions "$pkg"
+    done < "$db"
+  fi
+}
+
+# same as check() but sync the ABS tree first
+update-check() {
+  echo -n 'syncing abs tree... '
+  if sudo abs >/dev/null; then
+    echo 'ok'
+  else
+    echo
+    errorout 'error syncing abs tree'
+  fi
+
+  check
+}
+
+# the main abs tree
+abs_tree='/var/abs'
+
+# the local watch list
+db="$HOME/.watchabs"
+
+# parse options
+case "$1" in
+  -a|--add)          shift; add "$@" ;;
+  -c|--check)        check           ;;
+  -C|--update-check) update-check    ;;
+  *)                 message         ;;
+esac
