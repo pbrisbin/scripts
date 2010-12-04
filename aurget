@@ -12,8 +12,8 @@
 SCRIPT_NAME='Aurget'
 SCRIPT_DESCRIPTION='A simple pacman-like interface to the AUR'
 SCRIPT_AUTHOR='Patrick Brisbin <pbrisbin@gmail.com>'
-SCRIPT_VERSION='3.1.5'
-SCRIPT_DATE='11/15/2010'
+SCRIPT_VERSION='3.1.6'
+SCRIPT_DATE='12/3/2010'
 
 # }}}
 
@@ -975,6 +975,9 @@ parse_options() {
   # set editor
   editor="${pkgbuild_editor:-$EDITOR}"
   editor="${editor:-vi}" # a failsafe
+
+  # thanks falconindy
+  [[ -t 1 ]] || set_nocolor
 }
 
 # }}}
