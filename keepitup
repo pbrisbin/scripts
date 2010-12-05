@@ -1,0 +1,29 @@
+#!/bin/bash
+#
+# pbrisbin 2010
+#
+# yay for trouble-shooting
+#
+###
+
+# still running, quit
+pgrep lighttpd &>/dev/null && exit 0
+
+# try to capture some infos
+dir='/home/patrick/lighttpd_issue'
+[[ -d "$dir" ]] || mkdir -p "$dir"
+
+# save logs
+for file in /var/log/lighttpd/*; do
+  echo '--- MARK ---' >> "$dir/$(basename "$file")"
+  cat "$file" >> "$dir/$(basename "$file")"
+done
+
+# log the restart
+echo "$(date -R) :: lighttpd was down" >> "$dir/restart.log"
+
+# fix perms
+chown -R patrick:patrick "$dir"
+
+# restart services
+/etc/rc.d/lighttpd start
