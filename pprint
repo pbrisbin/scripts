@@ -1,0 +1,97 @@
+#!/bin/bash
+#
+# pbrisbin 2010
+#
+###
+
+message() { 
+  cat << EOF
+
+  usage: pprint [ -d <device> ] [ -m <media> ] <file> ...
+
+    options:
+      -d, --device        override, pass \`-d <device>' to lp
+      -m, --media         override, pass \`-o media=<media>' to lp
+
+EOF
+  exit 1
+}
+
+# determine if the photo is longer in the x direction or the y direction
+# so we know the proper geometry to pass to -resize
+is_landscape() {
+  local photo="$1" g w h
+
+  g=( $(identify "$photo" | sed -r 's%^'"$photo"' [^ ]* ([0-9]+)x([0-9]+).*$%\1 \2%') )
+  w=${g[0]}
+  h=${g[1]}
+
+  [[ $w -gt $h ]]
+}
+
+# make a resized copy in /tmp to be printed
+setup_photo() {
+  local photo="$1" t_photo
+
+  t_photo="$tmp/$(basename "$photo")"
+
+  cp "$photo" "$t_photo" || echo "$photo: failed to copy" >&2
+
+  if is_landscape "$t_photo"; then
+    mogrify -resize ${max_longer}x${max_shorter} "$t_photo" || echo "$t_photo: failed to resize" >&2
+  else
+    mogrify -resize ${max_shorter}x${max_longer} "$t_photo" || echo "$t_photo: failed to resize" >&2
+  fi
+
+  # add to stack
+  to_print+=( "$t_photo" )
+}
+
+# process each photo and print them as one print job
+print_photos() {
+  local photo
+
+  for photo in "$@"; do
+    setup_photo "$photo"
+  done
+
+  if [[ "${#to_print[@]}" -gt 0 ]]; then
+    if [[ -n "$device" ]]; then
+      lp -d "$device" -o media=$media -o fitplot -- "${to_print[@]}"
+    else
+      lp -o media=$media -o fitplot -- "${to_print[@]}"
+    fi
+  fi
+}
+
+# init/constants
+to_print=()
+tmp='/tmp/pprint'
+
+# my defaults, adjust these
+media='4x6inBorderLess'
+device=
+
+# a best guess, but keeping images at this size and/or ratio is the only
+# way they seem to print correctly; note: it's _not_ height width or
+# width height, lp seems to figure that out on it's own and -o fitplot
+# will ensure it fills the page
+max_longer=1940
+max_shorter=1160
+
+# parse options
+while [[ -n "$1" ]]; do
+  case "$1" in
+    -d|--device) shift; device="$1" ;;
+    -m|--media)  shift; media="$1"  ;;
+    --)          shift; break       ;;
+    -*)          message            ;;
+    *)           break              ;;
+  esac
+  shift
+done
+
+# run it
+[[ -d "$tmp" ]] || mkdir -p "$tmp"
+print_photos "$@"
+rm -r "$tmp"
