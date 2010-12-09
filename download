@@ -18,31 +18,35 @@ clean_up() { rm -f "$fifo"; exit ${1:-0}; }
 # try a specific mimetype match (adjust the cases as you like) and then
 # fall back on a major version only match
 open_file() {
-  local file="$1" filetype major minor
+  # use my custom xdg-open script (same logic)
+  xdg-open "$1"
 
-  [[ ! -f "$file" ]] && echo "$0: file not found - $file" >&2 && return 0
-
-  # try for exact match
-  filetype="$(xdg-mime query filetype "$file" 2>/dev/null | cut -d ';' -f 1)"
-
-  case "$filetype" in
-    text/html)       $BROWSER "$file" &>/dev/null & return 0 ;;
-    application/pdf) zathura "$file"  &>/dev/null & return 0 ;;
-    application/ogg) playnow "$file"  &>/dev/null & return 0 ;;
-    audio/x-wav)     mplayer "$file"  &>/dev/null & return 0 ;;
-  esac
-
-  # match based on major only
-  IFS='/' read -r major minor <<< "$filetype"
-
-  case "$major" in
-    image) mirage "$file"        &>/dev/null & return 0 ;;
-    audio) playnow "$file"       &>/dev/null & return 0 ;;
-    text)  urxvtc -e vim "$file" &>/dev/null & return 0 ;;
-    video) mplayer "$file"       &>/dev/null & return 0 ;;
-  esac
-
-  return 1
+#  local file="$1" filetype major minor
+#
+#  [[ ! -f "$file" ]] && echo "$0: file not found - $file" >&2 && return 0
+#
+#  # try for exact match
+#  filetype="$(xdg-mime query filetype "$file" 2>/dev/null | cut -d ';' -f 1)"
+#
+#  case "$filetype" in
+#    text/html)       $BROWSER "$file" &>/dev/null & return 0 ;;
+#    application/pdf) zathura "$file"  &>/dev/null & return 0 ;;
+#    application/ogg) playnow "$file"  &>/dev/null & return 0 ;;
+#    audio/x-wav)     mplayer "$file"  &>/dev/null & return 0 ;;
+#  esac
+#
+#  # match based on major only
+#  IFS='/' read -r major minor <<< "$filetype"
+#
+#  case "$major" in
+#    image) mirage "$file"        &>/dev/null & return 0 ;;
+#    audio) playnow "$file"       &>/dev/null & return 0 ;;
+#    text)  urxvtc -e vim "$file" &>/dev/null & return 0 ;;
+#    video) mplayer "$file"       &>/dev/null & return 0 ;;
+#  esac
+#
+#  echo "$0: unmatched file - $file" >&2
+#  return 1
 }
 
 # kills the download process we've spawned, then goes after the wget
@@ -91,7 +95,7 @@ download_url() {
   done
 
   # try and open it
-  open_file "$file" || echo "$0: unmatched file - $file" >&2
+  open_file "$file"
   clean_up
 }
 
