@@ -13,11 +13,15 @@ pgrep lighttpd &>/dev/null && exit 0
 dir='/home/patrick/lighttpd_issue'
 [[ -d "$dir" ]] || mkdir -p "$dir"
 
-# save logs
+# save httpd logs
 for file in /var/log/lighttpd/*; do
-  echo '--- MARK ---' >> "$dir/$(basename "$file")"
+  echo '-- MARK --' >> "$dir/$(basename "$file")"
   cat "$file" >> "$dir/$(basename "$file")"
 done
+
+# save everything log
+echo '-- MARK --' >> "$dir/everything.log"
+tail /var/log/everything.log >> "$dir/everything.log"
 
 # log the restart
 echo "$(date -R) :: lighttpd was down" >> "$dir/restart.log"
