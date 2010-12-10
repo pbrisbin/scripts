@@ -16,37 +16,32 @@ message() { echo 'usage: android-receiver [start|stop|restart]'; exit 1; }
 # starts the daemon listening in the background, calls convert_message
 # when something's received
 start_daemon() {
-  while read -d $'\0'; do
-    convert_message "$REPLY"
-  done < <(netcat -z -u -l -p 10600 localhost)
+  [[ -f "$pid_file" ]] && errorout "file found at $pid_file, already running?"
 
-#  [[ -f "$pid_file" ]] && errorout "file found at $pid_file, already running?"
-#
-#  # start listening in background
-#  ( while read -d $'\0'; do
-#      convert_message "$REPLY"
-#    done < <(netcat -z -u -l -p 10600 localhost) ) &
-#
-#  echo "$pid: listening..." >&2
-#  echo $! > "$pid"
+  # start listening in background
+  ( while read -d $'\0'; do
+      convert_message "$REPLY"
+    done < <(netcat -z -u -l -p 10600 localhost) ) &
+
+  echo "$pid: listening..." >&2
+  echo $! > "$pid"
 }
 
 # stops the daemon using the pid file
-#stop_daemon() {
-#  local pid
-#
-#  if [[ -f "$pid_file" ]]; then
-#    read pid < "$pid_file"  
-#    kill $pid || errorout 'error stopping daemon'
-#    rm "$pid_file"
-#  fi
-#}
+stop_daemon() {
+  local pid
+
+  if [[ -f "$pid_file" ]]; then
+    read pid < "$pid_file"  
+    kill $pid || errorout 'error stopping daemon'
+    rm "$pid_file"
+  fi
+}
 
 # splits the message into fields and hands them off to handle_message
-# for actual display
+# for actual display; todo: use awk
 convert_message() {
   local message="$1"
-
   local v d_num m_num m_type m_data m_contents
 
   # todo: we only handle v2 messages for now
@@ -56,21 +51,13 @@ convert_message() {
 }
 
 # handle the message however you see fit: notify-osd, gnome-dbus, dzen,
-# whatever. here are your arguments:
-#
-# $1 - device id
-# $2 - notification id
-# $3 - event type: RING, SMS, MMS, BATTERY, PING
-# $4 - data: percent battery left, sender number, etc
-# $5 - contents: human readable information
-#
-###
+# whatever.
 handle_message() {
-  local device="$1"
-  local notification="$2"
-  local event_type="$3"
-  local data="$4"
-  local contents="$5"
+  local device="$1"       # device id
+  local notification="$2" # notification id
+  local event_type="$3"   # event type: RING, SMS, MMS, BATTERY, PING
+  local data="$4"         # data: percent battery left, sender number, etc
+  local contents="$5"     # contents: human readable information
 
   # just testing for now
   cat << EOF
@@ -84,4 +71,24 @@ handle_message() {
 EOF
 }
 
-start_daemon
+###
+# testing
+while read -d $'\0'; do
+  convert_message "$REPLY"
+done < <(netcat -z -u -l -p 10600 localhost)
+exit
+#
+###
+
+# config
+pid_file='/tmp/android-reciever.pid'
+
+# run
+case "$1" in
+  stop)    start_daemon ;;
+  start)   stop_daemon  ;;
+  restart) stop_daemon
+           sleep 1
+           start_daemon ;;
+  *)       message ;;
+esac
