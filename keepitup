@@ -31,3 +31,5 @@ chown -R patrick:patrick "$dir"
 
 # restart services
 /etc/rc.d/lighttpd start
+
+exit 1
