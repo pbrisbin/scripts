@@ -12,8 +12,8 @@
 SCRIPT_NAME='Aurget'
 SCRIPT_DESCRIPTION='A simple pacman-like interface to the AUR'
 SCRIPT_AUTHOR='Patrick Brisbin <pbrisbin@gmail.com>'
-SCRIPT_VERSION='3.1.6'
-SCRIPT_DATE='12/3/2010'
+SCRIPT_VERSION='3.1.7'
+SCRIPT_DATE='12/11/2010'
 
 # }}}
 
@@ -163,7 +163,7 @@ usage: aurget [ -v | -h | -S* [ --options ] [ -- ] <arguments> ]
 
         --rebuild       always rebuild (ignore your cache)
 
-        --devel         used with -Su to upgrade all development packages
+        --devel         only affects -Su, add all development packages
 
         --deps          resolve dependencies
         --nodeps        don't resolve dependencies
@@ -263,11 +263,7 @@ try_discard() {
   # we never discard sources
   $discard_sources || return
 
-  # we keep devels and we're doing a devel upgrade
-  $dont_discard_devels && $devels && return
-
   # we keep devels and this is a devel package
-  #$dont_discard_devels && echo ${1##*/} | grep -q -- "$development_regex" && return
   $dont_discard_devels && is_devel ${1##*/} && return
 
   # use find -delete incase the built package is still in the directory
@@ -372,31 +368,19 @@ upgrade() {
 
   display 'Starting AUR upgrade...'
   while read -r name vers; do
-    if $devels; then
-      # do only devel packages
-      #echo $name | grep -q -- "$development_regex" || continue
-      is_devel $name || continue
+    if is_devel $name; then
+      $devels && args+=("$name")
     else
-      # skip all devel packages
-      #echo $name | grep -q -- "$development_regex" && continue
-      is_devel $name && continue
-    fi
+      # available version 
+      versN="$(wget -q -O - "${aur_info}$(url_encode "$name")" | grep -Fv -- '"No result found"' | sed -e 's/.*"Version":"\([^"]*\)".*/\1/g')"
+      [[ -z "$versN" ]] && continue
 
-    # available version 
-    versN="$(wget -q -O - "${aur_info}$(url_encode "$name")" | grep -Fv -- '"No result found"' | sed -e 's/.*"Version":"\([^"]*\)".*/\1/g')"
+      # check against ignores
+      if echo " $ignore_packages " | grep -Fq -- " $name "; then
+        warn "$name: ignoring package upgrade ($vers => $versN)"
+        continue
+      fi
 
-    [[ -z "$versN" ]] && continue
-
-    # check against ignores
-    if echo " $ignore_packages " | grep -Fq -- " $name "; then
-      warn "$name: ignoring package upgrade ($vers => $versN)"
-      continue
-    fi
-
-    # devels are just added
-    if $devels; then
-      args+=("$name")
-    else
       # use vercmp
       check=$(vercmp "$vers" "$versN")
       [[ $check -gt 0 ]] && warn "$name: local ($vers) is newer than aur ($versN)"
@@ -808,7 +792,7 @@ dont_discard_devels=true
 # is a development package. development packages are not checked for
 # available upgrades but can be upgraded explicitly by passing --devel.
 ###
-development_regex='.*-git$\|.*-hg$\|.*-svn$\|.*-darcs$\|.*-cvs$'
+development_regex='.*-git$\|.*-hg$\|.*-svn$\|.*-darcs$\|.*-cvs$\|.*-bzr$'
 
 #
 # set this to true and aurget will remove all makedepends that were
