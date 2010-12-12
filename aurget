@@ -12,7 +12,7 @@
 SCRIPT_NAME='Aurget'
 SCRIPT_DESCRIPTION='A simple pacman-like interface to the AUR'
 SCRIPT_AUTHOR='Patrick Brisbin <pbrisbin@gmail.com>'
-SCRIPT_VERSION='3.1.7'
+SCRIPT_VERSION='3.1.8'
 SCRIPT_DATE='12/11/2010'
 
 # }}}
@@ -959,6 +959,13 @@ parse_options() {
   # set editor
   editor="${pkgbuild_editor:-$EDITOR}"
   editor="${editor:-vi}" # a failsafe
+
+  # change some things to go along with --noconfirm
+  if $noconfirm; then
+    popts+=' --noconfirm'
+    mopts+=' --noconfirm'
+    edit_pkgbuilds='never'
+  fi
 
   # thanks falconindy
   [[ -t 1 ]] || set_nocolor
