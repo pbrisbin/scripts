@@ -80,18 +80,21 @@ max_longer=1940
 max_shorter=1160
 
 # parse options
+args=()
 while [[ -n "$1" ]]; do
   case "$1" in
     -d|--device) shift; device="$1" ;;
     -m|--media)  shift; media="$1"  ;;
-    --)          shift; break       ;;
+    --)          break              ;;
     -*)          message            ;;
-    *)           break              ;;
+    *)           args+=( "$1" )     ;;
   esac
   shift
 done
 
+[[ -n "$*" ]] && args+=( "$@" )
+
 # run it
 [[ -d "$tmp" ]] || mkdir -p "$tmp"
-print_photos "$@"
+print_photos "${args[@]}"
 rm -r "$tmp"

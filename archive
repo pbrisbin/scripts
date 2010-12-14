@@ -72,7 +72,7 @@ parse_options() {
       -x|--extract)   extract=true                    ;;
       -d|-t|-n)       shift; target="$(rel2abs "$1")" ;;
       --d*|--t*|--n*) shift; target="$(rel2abs "$1")" ;;
-      --)             shift; break                    ;;
+      --)             break                           ;;
       -*)             message                         ;;
       *)              args+=( "$1" )                  ;;
     esac
