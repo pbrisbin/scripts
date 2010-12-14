@@ -12,7 +12,7 @@
 SCRIPT_NAME='Aurget'
 SCRIPT_DESCRIPTION='A simple pacman-like interface to the AUR'
 SCRIPT_AUTHOR='Patrick Brisbin <pbrisbin@gmail.com>'
-SCRIPT_VERSION='3.1.9'
+SCRIPT_VERSION='3.1.10'
 SCRIPT_DATE='12/14/2010'
 
 # }}}
@@ -82,24 +82,6 @@ print_array() {
 
 # check for development
 is_devel() { echo "$1" | grep -q -- "$development_regex"; }
-
-# called before sourcing config or on --nocolor
-set_nocolor() {
-  # disable pacman color
-  pacman="${pacman/pacman-color/pacman}"
-
-  # disable makepkg color
-  mopts+=' --nocolor'
-
-  # disable aurget color
-  nocolor=''
-  colorW=''
-  colorB=''
-  colorR=''
-  colorG=''
-  colorY=''
-  colorM=''
-}
 
 # set or remove our lock file
 set_lock_file() {
@@ -704,7 +686,6 @@ clean_entrance() {
 
 # set_defaults {{{
 set_defaults() {
-  set_nocolor
   sync_mode='install'
   search_mode='search'
   resolve_dependencies=false
@@ -716,6 +697,15 @@ set_defaults() {
   rebuild=false
   asroot=false
   remove_makedepends=false
+
+  # default to no color
+  nocolor=''
+  colorW=''
+  colorB=''
+  colorR=''
+  colorG=''
+  colorY=''
+  colorM=''
 }
 
 # }}}
@@ -884,7 +874,7 @@ source_makepkg() {
 
 # parse_options {{{
 parse_options() {
-  local _opmode=''
+  local _opmode='' donocolor=false
 
   # global var, used by main
   opmode=''
@@ -911,7 +901,7 @@ parse_options() {
       --ignore)      shift; ignore_packages+=" $1"          ;;
       --mopt)        shift; mopts="$1"                      ;;
       --popt)        shift; popts="$1"                      ;;
-      --nocolor)     set_nocolor                            ;;
+      --nocolor)     donocolor=true                         ;;
       --noconfirm)   noconfirm=true                         ;;
       --rebuild)     rebuild=true                           ;;
       --asroot)      asroot=true                            ;;
@@ -968,7 +958,22 @@ parse_options() {
   fi
 
   # thanks falconindy
-  [[ -t 1 ]] || set_nocolor
+  if $donocolor || [[ ! -t 1 ]]; then
+    # disable pacman color
+    pacman="${pacman/pacman-color/pacman}"
+
+    # disable makepkg color
+    mopts+=' --nocolor'
+
+    # disable aurget color
+    nocolor=''
+    colorW=''
+    colorB=''
+    colorR=''
+    colorG=''
+    colorY=''
+    colorM=''
+  fi
 }
 
 # }}}
