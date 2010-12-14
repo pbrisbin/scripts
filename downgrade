@@ -14,9 +14,7 @@ message() {
   cat << EOF
 
   usage: downgrade [ -p <command> ] [ -d <dir> ] [ -m <32|64> ] [ -a ] [ -i ] [ -- ] <pkg> ...
-
     options:
-
       -p,--pacman       set install command, default is \`sudo pacman -U'
       -d,--pkgdir       set download directory (A.R.M. only), default is \`~/Packages'
       -m,--arch         set search architecture (A.R.M. only), default is determined by \`uname -m\`
@@ -86,7 +84,7 @@ search_and_print_arm() {
   # user disabled A.R.M
   $searcharm || return 1
 
-  repos=""
+  repos=
   for repo in enabled_repos; do
     repos="${repos}&${repo}=1"
   done
@@ -127,7 +125,7 @@ get_arm() {
 
   url=${arms[$((num-1))]}
 
-  [[ -z "$url" ]] && errorout 'invalid choice'
+  [[ -z "$url" ]] && errorout 'invalid choice.'
 
   pkg="$pkgdir/$(basename $url)"
   wget -O "$pkg" "$url" || errorout "could not download package $pkg"
@@ -200,7 +198,7 @@ main() {
 
 # set defaults
 pkgdir="$HOME/Packages"  # where to put packages
-pacman="sudo pacman -U"  # package installer
+pacman='sudo pacman -U'  # package installer
 searcharm=true           # search arm if not in cache
 showinstalled=true       # show [installed] next to installed versions
 
