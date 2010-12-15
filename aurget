@@ -12,8 +12,8 @@
 SCRIPT_NAME='Aurget'
 SCRIPT_DESCRIPTION='A simple pacman-like interface to the AUR'
 SCRIPT_AUTHOR='Patrick Brisbin <pbrisbin@gmail.com>'
-SCRIPT_VERSION='3.1.10'
-SCRIPT_DATE='12/14/2010'
+SCRIPT_VERSION='3.2.0'
+SCRIPT_DATE='12/15/2010'
 
 # }}}
 
@@ -686,17 +686,16 @@ clean_entrance() {
 
 # set_defaults {{{
 set_defaults() {
-  sync_mode='install'
-  search_mode='search'
+  # just true/false and non config options
   resolve_dependencies=false
   discard_sources=true
   dont_discard_devels=true
-  development_regex='.*-git$\|.*-hg$\|.*-svn$\|.*-darcs$\|.*-cvs$\|.*-bzr$'
   devels=false
   noconfirm=false
   rebuild=false
   asroot=false
   remove_makedepends=false
+  search_mode='search'
 
   # default to no color
   nocolor=''
@@ -712,131 +711,27 @@ set_defaults() {
 
 # source_config {{{
 source_config() {
-  local config="$HOME/.aurgetrc"
+  local config
 
-  # override with XDG if we can
-  [[ ! -r "$config" ]] && [[ -d "$XDG_CONFIG_HOME" ]] && config="$XDG_CONFIG_HOME/aurgetrc"
-
-  if [[ ! -r "$config" ]]; then
-    echo -e "\n\n==> Note: default config file created at $config <==\n\n"
-
-    cat > "$config" << EOF
-#!/bin/bash
-#
-# aurget config file, generated $(date -R)
-#
-# use any valid bash to populate the variables.
-#
-# any config value can be set at runtime via --option=value
-#
-###
-
-#
-# the exact command used to install the built packages. --asdeps will be
-# automatically added when appropriate. use --popt to add any
-# additional options at runtime.
-###
-pacman_command='sudo pacman -U'
-
-#
-# the exact command used to build packages. use --mopt to add any
-# additional options at runtime.
-###
-makepkg_command='makepkg -s --noconfirm'
-
-#
-# by default, the value of \$EDITOR is used to edit pkgbuilds.
-# you can override this here if you'd like.
-###
-pkgbuild_editor=
-
-#
-# where to save built packages. leave empty to use the value of PKGDEST
-# in makepkg.conf (or the current working directory if that's blank).
-###
-package_directory=
-
-#
-# where to download source files and do the actual building. aurget
-# will create subdirectories named after the packages being built.
-# leave blank to the use current working directory. this replaces the
-# deprecated option source_directory.
-###
-build_directory=
-
-#
-# set this as false to not remove all source files after building a
-# package. this has no effect on sources saved using the SRCDEST
-# setting in makepkg.conf.
-###
-discard_sources=true
-
-#
-# set this to override the above when building development packages
-# as defined by development_regex.
-###
-dont_discard_devels=true
-
-#
-# this regex is matched against package names to determine if a package
-# is a development package. development packages are not checked for
-# available upgrades but can be upgraded explicitly by passing --devel.
-###
-development_regex='.*-git$\|.*-hg$\|.*-svn$\|.*-darcs$\|.*-cvs$\|.*-bzr$'
-
-#
-# set this to true and aurget will remove all makedepends that were
-# installed as part of the operation as the last step in said operation
-###
-remove_makedepends=false
-
-#
-# the default sync mode is the behavior when aurget -S <package> is
-# called. it can be one of install, build, or download.
-###
-sync_mode=install
-
-#
-# this determines how the editing of pkgbuilds is handled. it can be
-# one of always, never, or prompt. this replaces the deprecated option
-# prompt_to_edit. 
-#
-# edit_pkgbuilds=prompt is analagous to prompt_to_edit=true, and
-# edit_pkgbuilds=never is analagous to prompt_to_edit=false
-###
-edit_pkgbuilds=prompt
-
-#
-# set this as true to automatically resolve all aur dependencies.
-###
-resolve_dependencies=false
-
-#
-# this is a space separated list of package names to be ignored.
-###
-ignore_packages=
-
-#
-# by default, aurget uses no color. uncomment to enable/customize.
-###
-#nocolor="\e[0m"   # reset color
-#colorW="\e[1;37m" # white
-#colorB="\e[1;34m" # blue
-#colorR="\e[1;31m" # red
-#colorG="\e[1;32m" # green
-#colorY="\e[1;33m" # yellow
-#colorM="\e[1;35m" # magenta
-
-
-# don't edit this:
-version="$SCRIPT_VERSION"
-EOF
-
+  # global config file
+  config='/etc/aurgetrc'
+  if [[ -r "$config" ]]; then
+    . "$config" || errorout "$config: invalid configuration"
   fi
 
-  . "$config"
+  # try xdg directory
+  if [[ -n "$XDG_CONFIG_HOME" ]]; then
+    config="$XDG_CONFIG_HOME/aurgetrc"
+    if [[ -f "$config" ]]; then
+      . "$config" || errorout "$config: invalid configuration"
+    fi
+  fi
 
-  [[ -z "$version" ]] && warn 'config version unknown, this might get weird...'
+  # user config file
+  config="$HOME/.aurgetrc"
+  if [[ -r "$config" ]]; then
+    . "$config" || errorout "$config: invalid configuration"
+  fi
 }
 
 # }}}
@@ -885,7 +780,7 @@ parse_options() {
     case "$1" in
       -h|--help)     message                                ;;
       -v|--version)  version_info                           ;;
-      --)            break                                  ;;
+      --)            shift; args+=( "$@" ); break           ;;
       -S)            opmode='install'                       ;;
       -Sy)           opmode='install'; sync_mode='install'  ;;
       -Sb)           opmode='install'; sync_mode='build'    ;;
@@ -899,8 +794,8 @@ parse_options() {
       -Si|-Ssi|-Sis) opmode='search' ; search_mode='info'   ;;
       -Sp|-Ssp|-Sps) opmode='search' ; search_mode='print'  ;;
       --ignore)      shift; ignore_packages+=" $1"          ;;
-      --mopt)        shift; mopts="$1"                      ;;
-      --popt)        shift; popts="$1"                      ;;
+      --mopt)        shift; mopts+=" $1"                    ;;
+      --popt)        shift; popts+=" $1"                    ;;
       --nocolor)     donocolor=true                         ;;
       --noconfirm)   noconfirm=true                         ;;
       --rebuild)     rebuild=true                           ;;
@@ -922,9 +817,6 @@ parse_options() {
     [[ -n "$_opmode" ]] && [[ "$_opmode" != "$opmode" ]] && message
   done
 
-  # grab possible args after --
-  [[ -n "$*" ]] && args+=("$@")
-
   # verify enums
   [[ "$edit_pkgbuilds" =~ ^(always|never|prompt)$   ]]   || edit_pkgbuilds='prompt'
   [[ "$sync_mode"      =~ ^(download|build|install)$  ]] || errorout 'invalid sync mode specified'
@@ -933,9 +825,14 @@ parse_options() {
   # no dep checking unless installing
   [[ "$sync_mode" != 'install' ]] && resolve_dependencies=false
 
-  # set user binaries
+  # (re)set user binaries
   pacman="${pacman_command:-sudo pacman -U}"
-  makepkg="${makepkg_command:-makepkg -s --noconfirm}"
+  makepkg="${makepkg_command:-makepkg --noconfirm}"
+  editor="${pkgbuild_editor:-$EDITOR}"
+  editor="${editor:-vi}" # a failsafe
+
+  # (re)set dev regex, it can't be blank
+  development_regex=${development_regex:-.*-git$\|.*-hg$\|.*-svn$\|.*-darcs$\|.*-cvs$\|.*-bzr$}
 
   # prevent root unless desired
   if [[ $(id -u) -eq 0 ]]; then
@@ -946,15 +843,16 @@ parse_options() {
     mopts+=' --asroot'
   fi
 
-  # set editor
-  editor="${pkgbuild_editor:-$EDITOR}"
-  editor="${editor:-vi}" # a failsafe
-
-  # change some things to go along with --noconfirm
   if $noconfirm; then
-    popts+=' --noconfirm'
-    mopts+=' --noconfirm'
+    # change some things to go along with --noconfirm
+    grep -Fqw -- '--noconfirm' <<< "$popts" || popts+=' --noconfirm'
+    grep -Fqw -- '--noconfirm' <<< "$mopts" || mopts+=' --noconfirm'
     edit_pkgbuilds='never'
+  fi
+
+  # if resolving deps, tell makepkg so
+  if $resolve_dependencies; then
+    grep -Fqw -- '--syncdeps' <<< "$mopts" || mopts+=' --syncdeps'
   fi
 
   # thanks falconindy
@@ -963,7 +861,7 @@ parse_options() {
     pacman="${pacman/pacman-color/pacman}"
 
     # disable makepkg color
-    mopts+=' --nocolor'
+    grep -Fqw -- '--nocolor' <<< "$mopts" || mopts+=' --nocolor'
 
     # disable aurget color
     nocolor=''
