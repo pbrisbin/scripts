@@ -85,7 +85,7 @@ search_and_print_arm() {
   $searcharm || return 1
 
   repos=
-  for repo in enabled_repos; do
+  for repo in $(enabled_repos); do
     repos="${repos}&${repo}=1"
   done
 
