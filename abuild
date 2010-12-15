@@ -9,7 +9,7 @@
 ###
 
 # utilities {{{
-message() { echo 'usage: abuild [-f|-p] <package> ...'; exit 1; }
+message() { echo 'usage: abuild [ -f | -p ] <package> ...'; exit 1; }
 
 errorout() { echo "error: $*"; exit 1; } 
 
