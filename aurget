@@ -686,15 +686,15 @@ clean_entrance() {
 
 # set_defaults {{{
 set_defaults() {
-  # just true/false and non config options
-  resolve_dependencies=false
+  # just true/false and non-config options
   discard_sources=true
   dont_discard_devels=true
+  resolve_dependencies=false
+  remove_makedepends=false
   devels=false
   noconfirm=false
   rebuild=false
   asroot=false
-  remove_makedepends=false
   search_mode='search'
 
   # default to no color
