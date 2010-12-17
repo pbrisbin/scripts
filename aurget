@@ -249,8 +249,12 @@ try_discard() {
   $dont_discard_devels && is_devel ${1##*/} && return
 
   # use find -delete incase the built package is still in the directory
-  display "Discarding sources..."
-  find "$1" -depth ! -name "${1##*/}*$pkgext" -delete 2>/dev/null
+  #display "Discarding sources..."
+  #find "$1" -depth ! -name "${1##*/}*$pkgext" -delete 2>/dev/null
+
+  # turns out, the built package is _always_ in the directory
+  display 'Discarding sources...'
+  rm -r "$1"
 }
 
 # }}}
