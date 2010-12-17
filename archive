@@ -17,7 +17,7 @@ message() {
       
       -x, --extract     extract <archive>
       -f, --force       compress even if archive exists
-      -t, --target      extract in <target>, defaults to ./
+      -t, --target      compress to or extract in <target>
 
     extraction notes:
 
