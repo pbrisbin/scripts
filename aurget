@@ -12,8 +12,8 @@
 SCRIPT_NAME='Aurget'
 SCRIPT_DESCRIPTION='A simple pacman-like interface to the AUR'
 SCRIPT_AUTHOR='Patrick Brisbin <pbrisbin@gmail.com>'
-SCRIPT_VERSION='3.2.0'
-SCRIPT_DATE='12/15/2010'
+SCRIPT_VERSION='3.2.1'
+SCRIPT_DATE='12/17/2010'
 
 # }}}
 
@@ -74,11 +74,11 @@ prompt() {
 runtime_flag() { eval ${1/--/}; }
 
 # prints one array element per line
-print_array() {
-  local x
-
-  for x in "$@"; do echo $x; done
-}
+#print_array() {
+#  local x
+#
+#  for x in "$@"; do echo $x; done
+#}
 
 # check for development
 is_devel() { echo "$1" | grep -q -- "$development_regex"; }
@@ -96,7 +96,6 @@ set_lock_file() {
   fi
 
   if [[ -f "$lock_file" ]]; then
-
     cat << EOF
 
  $lock_file exists. if you're certain that no other aurget
@@ -222,20 +221,12 @@ prompt_to_edit() {
 
 # source_pkgbuild {{{
 source_pkgbuild() {
-  local pkgbuild="$1" tmpfile build 
+  local pkgbuild="$1"
 
-  [[ ! -f "$pkgbuild" ]] && errorout 'pkgbuild not found'
+  [[ ! -f $pkgbuild ]] && errorout 'pkgbuild not found'
 
-  tmpfile="$tmpdir/pkgbuild.$$"
-
-  # regex to denote the start of the build function
-  build='^build.*(.*)\|^function.*build.*(.*)' 
-
-  # put the top half in a file to be sourced
-  grep -B 999 "$build" "$pkgbuild" | grep -v -- "$build" > "$tmpfile"
-
-  # source and remove
-  . "$tmpfile" &>/dev/null; rm "$tmpfile"
+  # source pkgbuild variables
+  source <(awk '/^build.*(.*)|^function.*build.*(.*)/{exit};1' "$pkgbuild")
 }
 
 # }}}
@@ -279,6 +270,7 @@ print_pkgbuild() {
   # finally, exit
   clean_exit $ret
 }
+
 # }}}
 
 # url_encode {{{
@@ -293,8 +285,9 @@ url_encode() {
   '
 
   # 6/19/2010 + thanks to Irm for this bit of magic
-  echo $string | hexdump -v -e '1/1 "%02x\t"' -e '1/1 "%_c\n"' | LANG=C awk "$awkscript"
+  hexdump -v -e '1/1 "%02x\t"' -e '1/1 "%_c\n"' <<< "$string" | LANG=C awk "$awkscript"
 }
+
 # }}}
 
 # search_aur {{{
@@ -303,19 +296,26 @@ search_aur() {
   [[ "$search_mode" = 'print' ]] && print_pkgbuild "${args[@]}"
 
   # continue with other searches
-  local term name Name Version Description URLPath OutOfDate
+  local awkscript results term name Name Version Description URLPath OutOfDate
 
   term="${args[*]}"
 
   # do we need exact match or not?
   [[ "$search_mode" = 'info' ]] && name="\"$term\"" || name=''
 
-  # put sorted linesplit JSON data into a file
-  wget -q -O - "${aur_srch}$(url_encode "$term")" | sed -e 's/{/\n/g;s/}//g' |\
-    grep -F "\"Name\":$name" | sort -t ':' -k 3.2 > "$tmpdir/results.lst"
+  awkscript='
+  /Name":|var/      { printf "%s", $3 }
+  /Version":/       { printf "|%s", $3 }
+  /Description":/   { printf "|%s", $3 }
+  /URLPath":/       { printf "|%s", $3 }
+  /OutOfDate":/     { printf "|%s\n", $3 }
+  '
+
+  # parse JSON data
+  results="$(wget -q -O - "${aur_srch}$(url_encode "$term")" | awk -F'"' -v RS='","' -v var="$name" "$awkscript")"
 
   # no results
-  [[ -s "$tmpdir/results.lst" ]] || clean_exit 1
+  [[ -z "$results" ]] || clean_exit 1
 
   # sed-parse that file
   while IFS='|' read -r Name Version Description URLPath OutOfDate; do
@@ -340,10 +340,7 @@ search_aur() {
 
       *)      errorout 'invalid search_mode'
     esac
-  done < <(sed -e 's/\\"/'\''/g' -e 's/.*"Name":"\([^"]*\)".*"Version":"\([^"]*\)".*"Description":"\([^"]*\)".*"URLPath":"\([^"]*\)".*"OutOfDate":"\([^"]*\)".*/\1|\2|\3|\4|\5/g' "$tmpdir/results.lst")
-
-  # cleanup
-  rm "$tmpdir/results.lst"
+  done <<< "$results"
 }
 
 # }}}
@@ -373,14 +370,10 @@ upgrade() {
       [[ $check -lt 0 ]] && args+=("$name")
     fi
   done < <(pacman -Qm)
-  
-  if [[ ${#args[@]} -ne 0 ]]; then
-    setup_targets
-  else
-    echo ' there is nothing to do'
-  fi
+
+  [[ ${#args[@]} -ne 0 ]] && setup_targets || echo ' there is nothing to do'
 }
-  
+
 # }}} 
 
 # find_pkg {{{
@@ -402,6 +395,7 @@ find_pkg() {
 
   echo "$pkg"
 }
+
 # }}}
 
 # download_tarball {{{
@@ -412,9 +406,9 @@ download_tarball() {
   target="$srcdir/$name.tar.gz"
   url="${aur}$(url_encode "${url//\\\///}")"
   wget -O "$target" "$url" || errorout 'failed to retrieve aur sources'
-  
+
   # JSON often reports a url, it'll download but won't be a tarball
-  if ! file "$target" | grep -Fq 'gzip'; then
+  if ! grep -Fq 'gzip' <(file "$target"); then
     warn "$name: not a valid tarball, trying alternate url..."
     wget -O "$target" "$aur_pkgs/$(url_encode "$name/$name").tar.gz" || errorout 'failed to retrieve aur sources'
   fi
@@ -444,7 +438,7 @@ build_package() {
   prompt_to_edit "$pkgbuild" 'building package' || continue
 
   # explicitly set env vars b/c we don't know if they came from makepkg.conf
-  pushd "$(dirname "$pkgbuild")" &>/dev/null || errorout 'failed to change directory'
+  pushd "${pkgbuild##*/}" &>/dev/null || errorout 'failed to change directory'
 
   # if we fail building, errorout on dep or just return 1 on
   # non-dep
@@ -534,13 +528,16 @@ dep_check() {
       # keep args out of deps so error messages are more sane
       if ! source_for_deps "$name"; then
         # assume it's a pacman dep for now
-        echo " ${args[@]} " | grep -Fq -- " $name " || pac_deps+=("$name")
+        grep -Fq -- " $name " <<< " ${args[@]} " || pac_deps+=("$name")
       else
-        echo " ${args[@]} " | grep -Fq -- " $name " || aur_deps=("$name" "${aur_deps[@]}")
+        grep -Fq -- " $name " <<< "${args[@]} " || aur_deps=("$name" "${aur_deps[@]}")
 
         # filter satasfied deps, clear versioning
         depends=( $(pacman -T -- ${depends[@]} ${makedepends[@]}) )
-        depends=( $(print_array "${depends[@]}" | sed -e 's/=.*//' -e 's/>.*//' -e 's/<.*//') )
+        #depends=( $(print_array "${depends[@]}" | sed -e 's/=.*//' -e 's/>.*//' -e 's/<.*//') )
+        depends=( "${depends[@]%>*}" )
+        depends=( "${depends[@]%=*}" )
+        depends=( "${depends[@]%=*}" )
 
         # store make depends for later removal
         mk_deps+=( ${makedepends[@]} )
@@ -569,7 +566,7 @@ dep_check() {
       pacman -Ssq -- "^$dep$" &>/dev/null || errorout "$dep: dependency cannot be met."
     done
 
-    pac_deps=( $(print_array "${pac_deps[@]}" | sort -u) )
+    pac_deps=( $(sort -u <(printf '%s\n' "${pac_deps[@]}")) )
 
     echo; warn "the following (${#pac_deps[@]}) packages will be installed by pacman: ${pac_deps[@]}"; echo
   fi
@@ -585,7 +582,7 @@ add_targets_to_list() {
   dep="$1"; shift
 
   for name in "$@"; do
-    if echo " $ignore_packages " | grep -Fq -- " $name "; then
+    if grep -Fq -- " $name " <<< " $ignore_packages "; then
       if ! prompt "${colorB}::${colorW} $name is in ignore_packages. Install anyway${nocolor}"; then
         warn "skipping target: $name"
         continue
@@ -600,7 +597,7 @@ add_targets_to_list() {
     grep -Fqx -- "$Name $Version" "$tmpdir/installed.lst" && warn "$Name-$Version is up to date -- reinstalling"
 
     # add non-dupes to list of targets
-    if ! echo " ${list_names[@]} " | grep -Fx -- " $Name "; then
+    if ! grep -Fx -- " $Name " <<< " ${list_names[@]} "; then
       list_names+=("$Name")
       list_versions+=("$Version")
       list_urls+=("$URLPath")
@@ -626,7 +623,7 @@ setup_targets() {
 
   if [[ ${#list_names[@]} -ne 0 ]]; then
     echo -en "\n${colorY}Targets (${#list_names[@]}):${nocolor} "
-    
+
     for ((i=0; i<${#list_names[@]}; i++)); do
       echo -n "${list_names[i]}-${list_versions[i]} "
     done
@@ -656,7 +653,6 @@ process_targets() {
     # check in the cache
     pkg="$(find_pkg "$Name" "$Version")"
 
-    #if ! $rebuild && [[ -n "$pkg" ]] && [[ "$sync_mode" = 'install' ]]; then
     if ! $rebuild && [[ -n "$pkg" ]] && [[ "$sync_mode" = 'install' ]] && ! is_devel "$pkg"; then
       # use cached package
       display "Installing cached $pkg..."
@@ -681,10 +677,7 @@ process_targets() {
 # }}}
 
 # clean_entrance {{{
-clean_entrance() {
-  set_lock_file
-  clear_temp
-}
+clean_entrance() { set_lock_file; clear_temp; }
 
 # }}}
 
@@ -784,7 +777,7 @@ parse_options() {
     case "$1" in
       -h|--help)     message                                ;;
       -v|--version)  version_info                           ;;
-      --)            shift; args+=( "$@" ); break           ;;
+      --)            break                                  ;;
       -S)            opmode='install'                       ;;
       -Sy)           opmode='install'; sync_mode='install'  ;;
       -Sb)           opmode='install'; sync_mode='build'    ;;
@@ -820,6 +813,9 @@ parse_options() {
     # show help if multiple -S* commands are passed
     [[ -n "$_opmode" ]] && [[ "$_opmode" != "$opmode" ]] && message
   done
+
+  # grab possible args after --
+  [[ $* ]] && args+=("$@")
 
   # verify enums
   [[ "$edit_pkgbuilds" =~ ^(always|never|prompt)$   ]]   || edit_pkgbuilds='prompt'
