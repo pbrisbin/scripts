@@ -315,7 +315,7 @@ search_aur() {
   results="$(wget -q -O - "${aur_srch}$(url_encode "$term")" | awk -F'"' -v RS='","' -v var="$name" "$awkscript")"
 
   # no results
-  [[ -z "$results" ]] || clean_exit 1
+  [[ -z "$results" ]] && clean_exit 1
 
   # sed-parse that file
   while IFS='|' read -r Name Version Description URLPath OutOfDate; do
