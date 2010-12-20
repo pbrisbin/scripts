@@ -12,7 +12,7 @@
 SCRIPT_NAME='Aurget'
 SCRIPT_DESCRIPTION='A simple pacman-like interface to the AUR'
 SCRIPT_AUTHOR='Patrick Brisbin <pbrisbin@gmail.com>'
-SCRIPT_VERSION='3.2.1'
+SCRIPT_VERSION='3.2.2'
 SCRIPT_DATE='12/17/2010'
 
 # }}}
@@ -528,22 +528,22 @@ dep_check() {
       # keep args out of deps so error messages are more sane
       if ! source_for_deps "$name"; then
         # assume it's a pacman dep for now
-        grep -Fq -- " $name " <<< " ${args[@]} " || pac_deps+=("$name")
+        grep -Fq -- " $name " <<< " ${args[@]} " || pac_deps+=( "$name" )
       else
-        grep -Fq -- " $name " <<< "${args[@]} " || aur_deps=("$name" "${aur_deps[@]}")
+        grep -Fq -- " $name " <<< " ${args[@]} " || aur_deps=( "$name" "${aur_deps[@]}" )
 
         # filter satasfied deps, clear versioning
         depends=( $(pacman -T -- ${depends[@]} ${makedepends[@]}) )
         #depends=( $(print_array "${depends[@]}" | sed -e 's/=.*//' -e 's/>.*//' -e 's/<.*//') )
         depends=( "${depends[@]%>*}" )
         depends=( "${depends[@]%=*}" )
-        depends=( "${depends[@]%=*}" )
+        depends=( "${depends[@]%<*}" )
 
         # store make depends for later removal
-        mk_deps+=( ${makedepends[@]} )
+        mk_deps+=( "${makedepends[@]}" )
 
         # track unsatisfied deps
-        [[ ${#depends[@]} -ne 0 ]] && all_deps+=("${depends[@]}")
+        [[ ${#depends[@]} -ne 0 ]] && all_deps+=( "${depends[@]}" )
 
 #        echo ++ depends found as
 #        print_array ${depends[@]}
@@ -561,11 +561,12 @@ dep_check() {
 
   if [[ "${#pac_deps[@]}" -ne 0 ]]; then
     # check a list quickly for availability
-    for dep in $(pacman -Si -- "${pac_deps[@]}" 2>&1 >/dev/null | cut -d \' -f 2); do
+    while IFS=\' read -r _ dep _; do
       # check only the error cases as a possible provides
       pacman -Ssq -- "^$dep$" &>/dev/null || errorout "$dep: dependency cannot be met."
-    done
+    done < <(pacman -Si -- "${pac_deps[@]}" 2>&1 >/dev/null)
 
+    # sort and unique
     pac_deps=( $(sort -u <(printf '%s\n' "${pac_deps[@]}")) )
 
     echo; warn "the following (${#pac_deps[@]}) packages will be installed by pacman: ${pac_deps[@]}"; echo
@@ -628,7 +629,7 @@ setup_targets() {
       echo -n "${list_names[i]}-${list_versions[i]} "
     done
 
-    echo; echo; prompt 'Proceed with installation' && process_targets
+    prompt "\n\nProceed with installation" && process_targets
   else
     errorout 'no targets specified (use -h for help)'
   fi
