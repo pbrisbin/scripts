@@ -158,6 +158,12 @@ parse_options() {
     esac
     shift
   done
+
+  # args after break
+  [[ -n "$*" ]] && args+=( "$@" )
+
+  # no args?
+  [[ "${#args[@]}" -eq 0 ]] && message
 }
 
 parse_options "$@"
