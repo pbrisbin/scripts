@@ -114,6 +114,7 @@ create_taurball() {
   prompt "create taurball from $dir" || return 1
   pushd "${dir%/*}" >/dev/null       || return 1
   tar cvpzf "$taur" "./${dir##*/}"   || return 1
+  popd >/dev/null                    || return 1
 
   return 0
 }
