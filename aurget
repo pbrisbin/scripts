@@ -296,7 +296,7 @@ search_aur() {
   [[ "$search_mode" = 'print' ]] && print_pkgbuild "${args[@]}"
 
   # continue with other searches
-  local awkscript results term name Name Version Description URLPath OutOfDate
+  local awkscript results term name Name Version Description URL URLPath OutOfDate
 
   term="${args[*]}"
 
@@ -307,6 +307,7 @@ search_aur() {
   /Name":|var/      { printf "%s", $3 }
   /Version":/       { printf "|%s", $3 }
   /Description":/   { printf "|%s", $3 }
+  /URL":/           { printf "|%s", $3 }
   /URLPath":/       { printf "|%s", $3 }
   /OutOfDate":/     { printf "|%s\n", $3 }
   '
@@ -318,7 +319,7 @@ search_aur() {
   [[ -z "$results" ]] && clean_exit 1
 
   # sed-parse that file
-  while IFS='|' read -r Name Version Description URLPath OutOfDate; do
+  while IFS='|' read -r Name Version Description URL URLPath OutOfDate; do
     [[ -z "$Name" ]] && continue
 
     # FYI: http://old.nabble.com/echo-interrupted-by-SIGCHLD-from-a-dying-coprocess-td28028050.html
@@ -329,6 +330,7 @@ search_aur() {
               echo -e "${colorW}Repository \t: ${colorM}aur${nocolor}"              2>/dev/null
               echo -e "${colorW}Name \t\t: $Name${nocolor}"                         2>/dev/null
               echo -e "${colorW}Version \t: ${colorG}$Version${nocolor}"            2>/dev/null
+              echo -e "${colorW}URL \t\t: ${colorC}${URL//\\\///}${nocolor}"        2>/dev/null
               echo -e "${colorW}Out of date \t: ${nocolor}$outofdate"               2>/dev/null
               echo -e "${colorW}Description \t: ${nocolor}${Description//\\\///}\n" 2>/dev/null ;;
 
@@ -698,6 +700,7 @@ set_defaults() {
   # default to no color
   nocolor=''
   colorW=''
+  colorC=''
   colorB=''
   colorR=''
   colorG=''
@@ -867,6 +870,7 @@ parse_options() {
     # disable aurget color
     nocolor=''
     colorW=''
+    colorC=''
     colorB=''
     colorR=''
     colorG=''
