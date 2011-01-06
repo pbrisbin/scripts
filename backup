@@ -7,26 +7,38 @@
 #
 ###
 
-message()  { echo 'usage: backup [ -d | -m | --media ]'; exit 1; }
 errorout() { echo "error: $*" >&2; exit 1; }
+message()  { echo 'usage: backup [ -d | -m | --media ]'; exit 1; }
+
+check_lock() {
+  local drive="$1"
+
+  [[ -f "$drive/.lock" ]] && return 0
+
+  # if we get here we fail
+  errorout "$drive/.lock not found. is it mounted?"
+}
+
+# must be root
+[[ $(id -u) -eq 0 ]] || errorout 'only root can do that.'
 
 # normal backup settings
 backup_daily='/mnt/backup/daily'
 backup_monthly='/mnt/backup/monthly'
-
-includes=(/srv/http /home/patrick /etc /usr /var /boot)
-excludes=(Downloads lost+found)
+includes=( /srv/http /home/patrick /etc /usr /var /boot )
+excludes=( Downloads lost+found )
 
 # my large media collection is handled specially
-backup_media='/mnt/backup2'
-media_includes=(/mnt/data1/Rips /mnt/data2/Movies /mnt/data2/TV_shows)
-media_excludes=(converted)
+media_backup='/mnt/backup2'
+media_includes=( /mnt/data1/Rips /mnt/data2/Movies /mnt/data2/TV_shows )
+media_excludes=( converted )
 
 if [[ "$1" = '--media' ]]; then
   # do a media backup and exit
-  [[ -f "$backup_media/.lock" ]] || errorout "$backup_media/.lock not found, is it mounted?"
-  echo "syncing media to $backup_media/media.tbz2"
-  rsync -a -l --delete --delete-excluded "${media_includes[@]}" ${media_excludes[@]/#/--exclude } "$backup_media/"
+  check_lock "$media_backup"
+  echo -n "syncing media to $media_backup/... "
+  rsync -a -l --delete --delete-excluded "${media_includes[@]}" ${media_excludes[@]/#/--exclude } "$media_backup/"
+  echo 'done.'
   exit $?
 fi
 
@@ -39,15 +51,14 @@ esac
 # default
 backup_dir="${backup_dir:-$backup_daily}"
 
-# initial checks
-[[ $(id -u) -eq 0         ]] || errorout 'only root can do that...'
-[[ -f "$backup_dir/.lock" ]] || errorout "$backup_dir/.lock not found, is it mounted?"
+# is mounted
+check_lock "$backup_dir"
 
-echo "syncing directories to $backup_dir/"
+echo -n "syncing directories to $backup_dir/... "
 rsync -a -l --delete --delete-excluded "${includes[@]}" ${excludes[@]/#/--exclude } "$backup_dir/"
+echo 'done.'
 
-echo 'generating package lists...'
+echo -n 'generating package lists... '
 pacman -Qqe | grep -Fvx "$(pacman -Qqm)" > "$backup_dir/paclog" || errorout 'failed creating paclisting'
 pacman -Qqm > "$backup_dir/aurlog"                              || errorout 'failed creating aur listing'
-
-echo 'done'
+echo 'done.'
