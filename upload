@@ -13,15 +13,20 @@
 # this file the name of the package.
 #
 # That file will be sourced by this script if that package is passed as
-# an argument. The sourcing should define one variable and two
+# an argument. The sourcing should define two variables and two
 # functions:
 #
-#   package_files    : the path to the directory that will ultimately be
+#   source_files     : the path to the directory that will ultimately be
 #                      tarred and uploaded to the AUR.
+#
+#   ignore_files     : a bash array of [relative] file names that are in
+#                      $source_files/ but should be ignored. spaces are
+#                      not supported at this time.
 #
 #   pre_edit_hook()  : this function will be called before the PKGBUILD
 #                      is presented for editing. Some useful things it
-#                      might do are update source files and md5sums.
+#                      might do are move around source files and update
+#                      md5sums.
 #
 #   post_edit_hook() : this function will be called after the PKGBUILD
 #                      has been edited, but before the files are tarred
@@ -80,6 +85,7 @@ process_pkg() {
 
   # ensure no cross-over
   unset -v source_files
+  unset -v ignore_files
   unset -f pre_edit_hook
   unset -f post_edit_hook
 
@@ -109,12 +115,12 @@ create_taurball() {
   local dir="$1" taur="$2"
 
   # display contents for review
-  ls -l -a "$dir"
+  ls ${ignore_files[@]/#/--ignore } -l -a "$dir"
 
-  prompt "create taurball from $dir" || return 1
-  pushd "${dir%/*}" >/dev/null       || return 1
-  tar cvpzf "$taur" "./${dir##*/}"   || return 1
-  popd >/dev/null                    || return 1
+  prompt "create taurball from $dir"                             || return 1
+  pushd "${dir%/*}" >/dev/null                                   || return 1
+  tar cvpzf "$taur" ${ignore_files[@]/#/--exclude=} "${dir##*/}" || return 1
+  popd >/dev/null                                                || return 1
 
   return 0
 }
@@ -126,7 +132,7 @@ upload_taurball() {
 
   prompt "upload $taur" || return 1
 
-  # using aurploader with stored password
+  # my way: using aurploader with stored password
   local aurpass="$HOME/.aurploader_pass"
   [[ -f "$aurpass" ]] || errorout "$aurpass: file not found."
   aurploader -r -l "$aurpass" "$taur" || return 1
