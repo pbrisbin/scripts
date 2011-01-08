@@ -11,7 +11,7 @@
 
 errorout() { echo "error: $*" >&2; exit 1; }
 
-message() { echo 'usage: android-receiver [start|stop|restart]'; exit 1; }
+message() { echo 'usage: android-receiver [ start | stop | restart ] | [ display <msg> ]'; exit 1; }
 
 # best function name ever. note: this assumes one child per parent at
 # each level, it is not a generic implimentation.
@@ -121,5 +121,7 @@ case "$1" in
   restart) stop_daemon
            sleep 3
            start_daemon ;;
+  # temporary: allow external calls
+  display) shift; convert_message "$1" ;;
   *)       message ;;
 esac
