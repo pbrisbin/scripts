@@ -28,7 +28,7 @@ compile_app() {
 
   echo 'recompiling the application...'
   $force && find ./ -type f -name '*.hs' -exec touch {} \;
-  ghc "$opt" --make -o app.cgi fastcgi.hs || errorout 'failed'
+  ghc $opt --make -o app.cgi fastcgi.hs || errorout 'failed'
   cp_file app.cgi "$dest/"
 
 }
@@ -106,7 +106,7 @@ migrate_db() {
   local dest="$1"
 
   # never overwrite a database
-  [[ ! -e "$dest/$db" ]] && cp_file "$db" "$dest/$db"
+  [[ ! -e "$dest/$db" ]] && cp_file "$db" "$dest/"
 }
 
 
