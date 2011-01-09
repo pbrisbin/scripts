@@ -6,33 +6,6 @@
 #
 ###
 
-message() { echo 'usage: dzen-handler <msg>'; exit 1; }
-
-# + todo: this code should be moved to the calling app
-convert_message() {
-  local message="$1"
-  local v d_num m_num m_type m_data m_contents
-
-  # todo: we only handle v2 messages for now
-  while IFS='/' read -r v d_num m_num m_type m_data m_contents; do
-    handle_message "$d_num" "$m_num" "$m_type" "$m_data" "$m_contents"
-  done <<< "$message"
-}
-
-handle_message() {
-  local device="$1"       # device id
-  local notification="$2" # notification id
-  local event_type="$3"   # event type: RING, SMS, MMS, BATTERY, PING
-  local data="$4"         # data: percent battery left, sender number, etc
-  local contents="$5"     # contents: human readable information
-
-  case "$event_type" in
-    RING)          handle_dzen "  !! Call from $contents..." ;;
-    SMS|MMS|PING)  handle_dzen "  !! $contents"              ;;
-    esac
-}
-# -
-
 # handle the event via dzen. this just throws $* into the dzen, so do
 # any text formatting before passing into this function
 handle_dzen() {
@@ -53,8 +26,7 @@ handle_dzen() {
     (dzen2 -ta l -h $height -x $x_offset -y $y_offset -fn "$font" -bg $background -fg $foreground < "$pipe"; rm -f "$pipe") &
   fi
 
-  # todo: make this prettier
   (echo "$message"; sleep $delay) >> "$pipe"
 }
 
-convert_message "$*"
+handle_dzen "$*"
