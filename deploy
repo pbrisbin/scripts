@@ -106,7 +106,10 @@ migrate_db() {
   local dest="$1"
 
   # never overwrite a database
-  [[ ! -e "$dest/$db" ]] && cp_file "$db" "$dest/"
+  if [[ ! -e "$dest/$db" ]]; then
+    echo 'migrating database...'
+    cp_file "$db" "$dest/"
+  fi
 }
 
 
