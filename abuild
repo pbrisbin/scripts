@@ -61,8 +61,19 @@ check_if_dep() {
 }
 
 print_pkgbuild() {
+  local repo chkdir
+
+  abs_dir=
+
   # find the directory containing the package's PKGBUILD
-  abs_dir="$(find /var/abs -name "$pack" -print -quit)"
+  for repo in $(enabled_repos); do
+    chkdir="/var/abs/$repo/$pack"
+    if [[ -d "$chkdir" ]]; then
+      abs_dir="$chkdir"
+      break
+    fi
+  done
+
   [[ -z "$abs_dir" ]] && errorout "$pack: no results found"
 
   # print its pkgbuild
