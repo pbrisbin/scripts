@@ -56,8 +56,7 @@ test_deploy() {
   # compile into test site
   compile_app '' "$testsite"
 
-  # migrate db
-  migrate_db "$testsite"
+  migrate_db
 
   # start services
   cd "$testsite"
@@ -82,8 +81,7 @@ prod_deploy() {
   # compile app into prodsite
   compile_app '-DPROD' "$prodsite"
 
-  # migrate db
-  migrate_db "$prodsite"
+  migrate_db
 
   adjust_permissions
 
@@ -103,12 +101,16 @@ adjust_permissions() {
 }
 
 migrate_db() {
-  local dest="$1"
-
-  # never overwrite a database
-  if [[ ! -e "$dest/$db" ]]; then
+  if $test; then
+    # always overwrite a test database
     echo 'migrating database...'
-    cp_file "$db" "$dest/"
+    cp "$dev_db" "$testsite/$test_db"
+  else
+    # never overwrite a prod database
+    if [[ ! -e "$prodsite/$prod_db" ]]; then
+      echo 'migrating database...'
+      sudo cp "$dev_db" "$prodsite/$prod_db"
+    fi
   fi
 }
 
@@ -117,6 +119,10 @@ migrate_db() {
 devsite="$HOME/Code/haskell/devsite"
 testsite="$HOME/http-test"
 prodsite='/srv/http'
+
+dev_db='dev-posts.db3'
+prod_db='posts.db3'
+test_db="$dev_db"
 
 # defaults
 force=false
