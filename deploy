@@ -47,7 +47,6 @@ test_deploy() {
 
   # push files up from dev
   echo 'updating test files from dev...'
-  cp_file hamlet "$testsite/"
   cp_file cassius "$testsite/"
 
   # setup lighttpd for local instance
@@ -75,7 +74,6 @@ prod_deploy() {
 
   # push up to prod
   echo 'updating prod files...'
-  cp_file hamlet "$prodsite/"
   cp_file cassius "$prodsite/"
 
   # compile app into prodsite
@@ -120,8 +118,8 @@ devsite="$HOME/Code/haskell/devsite"
 testsite="$HOME/http-test"
 prodsite='/srv/http'
 
-dev_db='dev-posts.db3'
-prod_db='posts.db3'
+dev_db='dev-posts.s3db'
+prod_db='posts.s3db'
 test_db="$dev_db"
 
 # defaults
