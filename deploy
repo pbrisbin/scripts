@@ -95,7 +95,7 @@ adjust_permissions() {
   sudo chown -R patrick:http "$prodsite"/*
   sudo chown http:http "$prodsite/app.cgi"
   sudo chown http:http "$prodsite/client_session_key.aes"
-  sudo chown http:http "$prodsite/$db"
+  sudo chown http:http "$prodsite/$prod_db"
 }
 
 migrate_db() {
@@ -140,10 +140,8 @@ done
 cd "$devsite" || errorout 'failed to change directory'
 
 if $test; then
-  db='dev-posts.db3'
   test_deploy
 else
-  db='posts.db3'
   prod_deploy
 fi
 
