@@ -5,7 +5,14 @@
 ###
 
 errorout() { echo "error: $*" >&2; exit 1; }
-message()  { echo 'usage: share <file>'; exit 1; }
+message()  { echo 'usage: share [ -r ] <file>'; exit 1; }
+
+if [[ "$1" =~ -r|--remove ]]; then
+  remove=true
+  shift
+else
+  remove=false
+fi
 
 [[ ! -e "$1" ]] && message
 
@@ -17,12 +24,16 @@ dst="$share/$(basename "$src")"
 if [[ -d "$src" ]]; then
   mode=755
   _cp='cp -r'
+  _rm='rm -r'
 else
   mode=644
   _cp='cp'
+  _rm='rm'
 fi
 
 $_cp "$src" "$dst" || errorout 'failed to copy'
 chmod $mode "$dst" || errorout 'failed to set permissions'
+
+$remove && $_rm "$src"
 
 file2link "$dst"
