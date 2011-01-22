@@ -40,9 +40,10 @@ test_deploy() {
 
   # pull files down from prod
   echo 'updating test files from prod...'
-  cp_file "$prodsite/pandoc" "$testsite/"
-  cp_file "$prodsite/xmonad" "$testsite/"
-  cp_file "$prodsite/static" "$testsite/"
+  cp_file "$prodsite/pandoc"  "$testsite/"
+  cp_file "$prodsite/xmonad"  "$testsite/"
+  cp_file "$prodsite/haskell" "$testsite/"
+  cp_file "$prodsite/static"  "$testsite/"
   cp_file "$prodsite/favicon.ico" "$testsite/"
 
   # push files up from dev
