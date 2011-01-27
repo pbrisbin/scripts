@@ -24,8 +24,11 @@ done
 pushd "$outdata" &>/dev/null || exit 1
 
 for file in "${files[@]}"; do
+  [[ -e "$file" ]] && continue
+
   ln -s "$file" .
 
+  echo "linked $file. creating torrent..."
   createtorrent -announce "$announce"   \
                 -port "$port"           \
                 "./$(basename "$file")" \
