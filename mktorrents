@@ -8,11 +8,13 @@
 #
 ###
 
+errorout() { echo "$*" >&2; exit 1; }
+
 outdir="$HOME/.gbs-torrents"
 outdata="$HOME/.gbs-content"
 
 announce='http://tracker.publicbt.com'
-port='80'
+port=80
 
 [[ -d "$outdir"  ]] || mkdir -p "$outdir"
 [[ -d "$outdata" ]] || mkdir -p "$outdata"
@@ -24,15 +26,20 @@ done
 pushd "$outdata" &>/dev/null || exit 1
 
 for file in "${files[@]}"; do
-  [[ -e "$file" ]] && continue
 
-  ln -s "$file" .
+  torfile="${file##*/}"
+  torrent="$outdir/${torfile%.*}.torrent"
 
-  echo "linked $file. creating torrent..."
-  createtorrent -announce "$announce"   \
-                -port "$port"           \
-                "./$(basename "$file")" \
-                "$outdir/$(basename "${file%.*}").torrent"
+  if [[ ! -e "$torfile" ]]; then
+    ln -s "$file" . ||\
+      errorout "$file -> $torfile: failed to link."
+  fi
+
+  if [[ ! -e "$torrent" ]]; then
+    createtorrent --announce "$announce" --port $port "./$torfile" "$torrent" ||\
+      errorout "./$torfile -> $torrent: failed to create."
+  fi
+
 done
 
 popd &>/dev/null
