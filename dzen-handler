@@ -13,7 +13,7 @@ handle_dzen() {
 
   # dzen settings
   local pipe='/tmp/android-receiver.fifo'
-  local delay=4
+  local delay=10
   local x_offset=0
   local y_offset=0
   local height=17
