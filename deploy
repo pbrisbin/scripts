@@ -87,6 +87,10 @@ prod_deploy() {
   # start services
   echo 'starting production services...'
   sudo /etc/rc.d/lighttpd start || errorout 'failed'
+
+  # touch Settings.hs so the next dev-compile doesn't use the same 
+  # pre-processor constants
+  touch Settings.hs
 }
 
 # only called in a PROD deployment
