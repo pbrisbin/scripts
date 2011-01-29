@@ -1,45 +1,84 @@
 #!/bin/bash
 #
-# pbrisbin 2010
-#
-# accepts any number of files as arguments. create a symlink in a data
-# directory, then create a torrent for the symlinked file which will
-# automatically start in the running rtorrent session.
+# pbrisbin 2011
 #
 ###
 
 errorout() { echo "$*" >&2; exit 1; }
 
-outdir="$HOME/.gbs-torrents"
-outdata="$HOME/.gbs-content"
+message() {
+  cat << EOF
+  usage: mktorrents [ -d <dir> ] [ -t <dir> ] [ -a <url> ] [ -p <port> ] <file> ...
 
-announce='http://tracker.publicbt.com'
-port=80
+    options:
+        -d,--data       set destination for linked content files
+        -t,--torrent    set destination for created torrent files
+        -a,--anounce    set announce url passed to \`createtorrent'
+        -p,--port       set port passed to \`createtorrent'
+        -h,--help       display this message
 
-[[ -d "$outdir"  ]] || mkdir -p "$outdir"
-[[ -d "$outdata" ]] || mkdir -p "$outdata"
+EOF
+  exit 1
+}
 
-for arg in "$@"; do
-  [[ -f "$arg" ]] && files+=( "$(readlink -f "$arg")" )
-done
+parse_options() {
+  # set my personal defaults
+  outdata="$HOME/.gbs-content"
+  outdir="$HOME/.gbs-torrents"
+  announce='http://tracker.publicbt.com'
+  port=80
 
-pushd "$outdata" &>/dev/null || exit 1
+  # parse commandline options
+  while [[ -n "$1" ]]; do
+    case "$1" in
+      -d|--data)     shift; outdata="$(readlink -f "$1")" ;;
+      -t|--torrents) shift; outdir="$(readlink -f "$1")"  ;;
+      -a|--announce) shift; announce="$1"                 ;;
+      -p|--port)     shift; port=$1                       ;;
+      -h|--helpt)    message                              ;;
+      *)             files+=( "$(readlink -f "$1")" )     ;;
+    esac
+    shift
+  done
 
-for file in "${files[@]}"; do
+  # validate arguments
+  [[ ! -d "$outdata"      ]] && errorout "$outdata: not a directory."
+  [[ ! -d "$outdir"       ]] && errorout "$outdir: not a directory."
+  [[ -z "$announce"       ]] && errorout 'empty announce url.'
+  [[ -n "${port//[0-9]/}" ]] && errorout "$port: invalid port."
+}
 
-  torfile="${file##*/}"
-  torrent="$outdir/${torfile%.*}.torrent"
+process_file() {
+  local file="$1"
 
-  if [[ ! -e "$torfile" ]]; then
-    ln -s "$file" . ||\
-      errorout "$file -> $torfile: failed to link."
+  [[ ! -e "$file" ]] && return 1
+
+  local data_file="${file##*/}" # basename
+  local torr_file="$outdir/${data_file%.*}.torrent"
+
+  if [[ ! -e "$data_file" ]]; then
+    if ! ln -s "$file" .; then
+       echo "$file -> $data_file: failed to link." >&2
+       return 1
+     fi
   fi
 
-  if [[ ! -e "$torrent" ]]; then
-    createtorrent --announce "$announce" --port $port "./$torfile" "$torrent" ||\
-      errorout "./$torfile -> $torrent: failed to create."
+  if [[ ! -e "$torr_file" ]]; then
+    if ! createtorrent --announce "$announce" --port $port "./$data_file" "$torr_file"; then
+      echo "./$data_file -> $torr_file: failed to create." >&2
+      return 1
+    fi
   fi
+}
 
-done
+main() {
+  pushd "$outdata" &>/dev/null || exit 1
 
-popd &>/dev/null
+  for file in "${files[@]}"; do
+    process_file "$file"
+  done
+
+  popd &>/dev/null
+}
+
+parse_options "$@"; main
