@@ -166,6 +166,6 @@ prompt "remove $orig" && rm -r "$orig"
 prompt 'update mpd db' && mpc update &>/dev/null
 
 # http://github.com/pbrisbin/scripts/blob/master/coverart
-#if prompt 'update covers in background'; then
-#  coverart &>/dev/null &
-#fi
+if prompt 'update covers in background'; then
+  coverart &>/dev/null &
+fi
