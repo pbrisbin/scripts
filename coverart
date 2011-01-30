@@ -27,8 +27,7 @@ read_tag() {
   mpc list ${2,,} any "${1/$mdir\//}" | sed -r "$sed"
 }
 
-url_encode() {
-  local string="$1" awkscript
+url_encode() { local string="$1" awkscript
 
   awk='
   $1 == "20"                   { printf("%s", "+"); next } # space becomes plus
@@ -50,14 +49,14 @@ fetch() {
   cover_url="$( (cd "$HOME/Code/php/albumart" && ./albumart.php -a "$artist" -b "$album" 2>/dev/null) )"
 
   if [[ -z "$cover_url" ]] || [[ "$cover_url" = 'no results found.' ]]; then
-    echo "$artist -- $album: cover url not found" >&2
+    $verbose && echo "$artist -- $album: cover url not found" >&2
     return
   fi
 
   if wget -q -O "$file" "$cover_url"; then
     echo "$artist -- $album: cover retrieved"
   else
-    echo "$artist -- $album: error retrieving cover" >&2
+    $verbose && echo "$artist -- $album: error retrieving cover" >&2
     rm -f "$file"
   fi
 }
@@ -108,5 +107,9 @@ cover='folder.jpg' # the filename to store the covers as
 
 # pass '--wipe' to do-over
 [[ "$1" = '--wipe' ]] && wipe
+
+# be quieter by default
+verbose=false
+[[ "$1" = '--verbose' ]] && verbose=true
 
 fetch_covers
