@@ -51,7 +51,7 @@ parse_options() {
 process_file() {
   local file="$1"
 
-  [[ ! -e "$file" ]] && return 1
+  [[ ! -f "$file" ]] && return 1
 
   local data_file="${file##*/}" # basename
   local torr_file="$outdir/${data_file%.*}.torrent"
