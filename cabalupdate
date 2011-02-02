@@ -1,0 +1,98 @@
+#!/bin/bash -e
+#
+# pbrisbin 2011
+#
+# trying to do a general, overall update of my haskell packages almost 
+# always ends up in a full reinstall *sigh*
+#
+# this time i'm taking note of the commands i run, and automating that 
+# shit.
+#
+###
+
+message() { echo 'usage: cabalupdate [ --stage 1-4 ] [ --ghc ] [ --darcs ]'; exit 1; }
+
+# stage 1
+remove_cabal_packages() {
+  # todo:
+
+  [[ $stage -eq 1 ]] && exit 0 || return 0
+}
+
+# stage 2
+reinstall_arch_packages() {
+  if $ghc; then
+    sudo pacman -S ghc
+    sudo ghc-pkg recache
+  fi
+
+  pacman -S haskell-mtl         \
+            haskell-utf8-string \
+            haskell-x11         \
+            haskell-x11-xft
+
+  if $darcs; then        
+    aurget -S xmonad-darcs xmonad-contrib-darcs
+  else
+    pacman -S xmonad xmonad-contrib
+  fi
+
+  [[ $stage -eq 2 ]] && exit 0 || return 0
+}
+
+# stage 3
+reinstall_cabal_packages() {
+  cabal install cabal
+
+  cabal install http                      \
+                tagsoup                   \
+                sha                       \
+                haddock-2.8.1             \
+                -fhighlighting pandoc     \
+                yesod                     \
+                yesod-auth                \
+                persistent-sqlite         \
+                regex-posix               \
+                network-wai-fastcgi-0.2.2 \
+                libmpd
+
+  [[ $stage -eq 3 ]] && exit 0 || return 0
+}
+
+# stage 4
+reinstall_my_packages() {
+  for pkg in yesod-markdown yesod-mpc; do
+    (cd "$HOME/Code/haskell/$pkg" && cabal install)
+  done
+
+  [[ $stage -eq 4 ]] && exit 0 || return 0
+}
+
+parse_options() {
+  stage=3
+  ghc=false
+  darcs=false
+
+  while [[ -n "$1" ]]; do
+    case "$1" in
+      -s|--stage) shift; stage="$1" ;;
+      -g|--ghc)   ghc=true          ;;
+      -d|--darcs) darcs=true        ;;
+      *)          message           ;;
+    esac
+    shift
+  done
+}
+
+parse_options "$@"
+
+echo 'writing existing packages to ./ghc-before.lst...'
+ghc-pkg list > ghc-before.lst
+
+remove_cabal_packages
+reinstall_arch_packages
+reinstall_cabal_packages
+reinstall_my_packages
+
+echo 'writing new packages to ./ghc-after.lst...'
+ghc-pkg list > ghc-after.lst
