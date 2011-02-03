@@ -2,114 +2,84 @@
 #
 # pbrisbin 2010
 #
-# can use audiotag (+atomicparsley for m4a support) or mpc to read tags;
-# make your choice 'round about line 23/25
+# fetch and organize albumart for your music collection
+#
+# images are both stored alongside the media as folder.jpg and copied 
+# into a central directory, each image named as artist_album.jpg.
 #
 ###
 
-#echo 'i dont work anymore, check back later...'
-#exit 1
+# strip out (Crap) / Disc X / Volume Y
+clean_string() {
+  local string="$1" sedscript
 
-# reads the requested tag from a file
-read_tag() {
-  local sed
-
-  # strip out (Crap) / Disc X / Volume Y
-  sed='
+  sedscript='
   s/(.*) +\([^\)]*\)/\1/g;
   s/(.*) +\(.*/\1/g;
   s/(.*) +\[?[Dd]is[ck].*/\1/g;
   s/(.*) +\[?[Vv]olume.*/\1/g;
   '
 
-  #which audiotag &>/dev/null || return 1
-  #audiotag -l "$1" | sed -r '/^=== '"$2"': *(.*)/!d;s//\1/g;'"$sed"
-  mpc list ${2,,} any "${1/$mdir\//}" | sed -r "$sed"
+  echo $string | sed -r "$sedscript"
 }
 
-url_encode() { local string="$1" awkscript
+# make a sane, tag-based filename so other apps can find cover images if 
+# they know the track's tags
+fix_filename() {
+  local artist="$1" album="$2" sedscript
 
-  awk='
-  $1 == "20"                   { printf("%s", "+"); next } # space becomes plus
-  $1 ~  /0[adAD]/              {                    next } # strip newlines
-  $2 ~  /^[a-zA-Z0-9.*()\/-]$/ { printf("%s", $2);  next } # pass through what we can
-                               { printf("%%%s", $1)      } # take hex value of everything else
+  sedscript='
+  s/.*/\L&/g;
+  s/ /_/g;
+  s/[^a-z0-9_.-]//g;
   '
 
-  # thanks to Irm for this bit of magic
-  echo $string | hexdump -v -e '1/1 "%02x\t"' -e '1/1 "%_c\n"' | LANG=C awk "$awk"
+  read -r filename < <(echo "$artist $album" | sed -r "$sedscript")
+
+  echo $filename.jpg
 }
 
-# uses my own php page which interfaces with AWS directly to locate a
-# direct url to the product's LargeImage -- pretty sweet
-fetch() {
-  local artist="$1" album="$2" file="$3" url cover_url
+fetch_cover() {
+  local artist="$1" album="$2" output="$3" cover_url
 
   # https://github.com/pbrisbin/albumart
-  cover_url="$( (cd "$HOME/Code/php/albumart" && ./albumart.php -a "$artist" -b "$album" 2>/dev/null) )"
+  read -r cover_url < <(albumart.php -a "$artist" -b "$album" 2>/dev/null);
 
-  if [[ -z "$cover_url" ]] || [[ "$cover_url" = 'no results found.' ]]; then
-    $verbose && echo "$artist -- $album: cover url not found" >&2
-    return
-  fi
+  # cover url not found
+  [[ ! "$cover_url" =~ ^http:// ]] && return 1
 
-  if wget -q -O "$file" "$cover_url"; then
-    echo "$artist -- $album: cover retrieved"
-  else
-    $verbose && echo "$artist -- $album: error retrieving cover" >&2
-    rm -f "$file"
-  fi
+  wget -O "$output" "$cover_url"
 }
 
-# process any directory not already containing a 'folder.jpg' file
-# within it
-fetch_covers() {
-  local IFS=$'\n' dir file found artist album track
+# constants
+mdir="$HOME/Music"
+odir='/srv/http/static/covers'
+cover='folder.jpg'
 
-  while read -r dir; do
+while read -r directory; do
+  filename="$directory/$cover"
 
-    file="$dir/$cover"
+  if [[ -f "$filename" ]]; then
+    for file in "$directory"/*; do
+      read -r artist < <(mpc list artist any "${file/$mdir\//}")
+      read -r album  < <(mpc list album any "${file/$mdir\//}")
+      [[ -n "$artist$album" ]] && break
+    done
 
-    [[ -f "$file" ]] && continue
-
-    found=false
-    artist=''
-    album=''
-
-    # read any one tag and stop
-    while read -r track; do
-      artist="$(read_tag "$track" 'ARTIST')"
-      album="$(read_tag "$track" 'ALBUM')"
-
-      if [[ -n "$artist" ]] && [[ -n "$album" ]]; then
-        found=true
-        break
-      fi
-    done < <(find "$dir" -type f -print)
-
-    if ! $found; then
-      # we shouldn't get here -- fix your tags slacker
-      echo "$(basename "$dir"), no tags read" >&2
-      continue
+    if [[ -n "$artist$album" ]]; then
+      cp -v "$filename" "$odir/$(fix_filename "$artist" "$album")"
     fi
+  else
+    for file in "$directory"/*; do
+      read -r artist < <(mpc list artist any "${file/$mdir\//}")
+      read -r album  < <(mpc list album any "${file/$mdir\//}")
+      [[ -n "$artist$album" ]] && break
+    done
 
-    # fetch the cover
-    fetch "$artist" "$album" "$file"
-
-  done < <(find "$mdir" -type f -exec dirname {} \; | sort -u)
-}
-
-# removes any folder.jpgs left by this (or any) script
-wipe() { find "$mdir" -name "$cover" -delete; }
-
-mdir="$HOME/Music" # parent directory of your music collection
-cover='folder.jpg' # the filename to store the covers as
-
-# pass '--wipe' to do-over
-[[ "$1" = '--wipe' ]] && wipe
-
-# be quieter by default
-verbose=false
-[[ "$1" = '--verbose' ]] && verbose=true
-
-fetch_covers
+    if [[ -n "$artist$album" ]]; then
+      if fetch_cover "$artist" "$(clean_string "$album")" "$filename"; then
+        cp -v "$filename" "$odir/$(fix_filename "$artist" "$album")"
+      fi
+    fi
+  fi
+done < <(find "$mdir" -type f -exec dirname {} \; | sort -u)
