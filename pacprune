@@ -73,7 +73,7 @@ get_pkg_info() {
 # gets info for all packages
 # sets up all.lst
 create_all_list() {
-  local IFS=$'\n' LC_ALL='C'
+  local LC_ALL='C'
 
   touch "$dir/all.lst"
   logger "gathering package info..."
@@ -92,8 +92,6 @@ create_all_list() {
 # queries pacman
 # sets up discard.lst
 create_discard_list() {
-  local IFS=$'\n'
-
   # copy files into a discard list
   awk '{print $3}' "$dir/all.lst" > "$dir/discard.lst"
 
@@ -121,8 +119,6 @@ check_safety() {
 
 # uses discard.lst to remove pkgs
 prune_pkgs() {
-  local IFS=$'\n'
-
   logger 'pruning packages...'
 
   if [[ ! -d ./garbage ]]; then

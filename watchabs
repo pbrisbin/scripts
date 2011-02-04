@@ -84,7 +84,7 @@ add() {
 # check all packages in the watch list for available updates
 check() {
   if [[ -f "$db" ]]; then
-    while IFS=$'\n' read -r pkg; do
+    while read -r pkg; do
       compare_versions "$pkg"
     done < "$db"
   fi

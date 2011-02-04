@@ -49,8 +49,6 @@ message() {
 }
 
 listen() {
-  local IFS=$'\n'
-
   echo $$ > $PID_file
 
   echo I await your command.

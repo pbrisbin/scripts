@@ -11,7 +11,7 @@ message() { echo 'usage: webpreview [ --open | --reload ] <file>' >&2; exit 1; }
 doopen() { uzbl-core "$file_url" &>/dev/null & }
 
 to_socket() {
-  local IFS=$'\n' socket="$1"
+  local socket="$1"
 
   while read -r; do
     echo "$REPLY" | socat - unix-connect:$socket 2>/dev/null | grep -v '^EVENT\|^\ *$'
@@ -36,7 +36,7 @@ check_uri() {
 }
 
 try_recent() {
-  local IFS=$'\n' socket
+  local socket
 
   [[ -f "$session" ]] && read -r socket < "$session" || return 1
   [[ -S "$socket"  ]] && check_uri "$socket"         || return 1

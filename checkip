@@ -31,7 +31,7 @@ ipfile="$HOME/.myip"
 
 touch "$ipfile"
 
-IFS=$'\n' read -r old < "$ipfile"
+read -r old < "$ipfile"
 new="$(wget -q -O - "$ip_url")"
 
 [[ "$old" != "$new" ]] && update_dns || exit 0

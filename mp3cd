@@ -61,8 +61,6 @@ burn_now=()
 rm -rf "$tmp"
 mkdir -p "$tmp"
 
-IFS=$'\n'
-
 while read -r file; do
   [[ -e "$file" ]] || logger "$file not found, skipping..."
 

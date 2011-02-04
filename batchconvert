@@ -76,7 +76,7 @@ process_queue() {
   local from to
 
   logger 'begin processing'
-  while IFS=$'\n' read -r from; do
+  while read -r from; do
     to="/tmp/$(basename "${from%.*}").mp4"  
     convert "$from" "$to" && post_convert "$from" "$to"
   done < "$queue"

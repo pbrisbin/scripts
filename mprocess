@@ -43,7 +43,7 @@ fill_vars_at() {
 
   # set the global vars
   eval $(
-    while IFS=$'\n' read -r; do
+    while read -r; do
       output="${REPLY/=== /}"
       output="${output/: /=\"}"
 
@@ -67,7 +67,7 @@ fill_vars_at() {
 # folders/files in the proper structure under ./sorted based on these
 # tags
 process_dir() {
-  local IFS=$'\n' dir="$1" sdir ext dest good
+  local dir="$1" sdir ext dest good
 
   [[ -d "$dir" ]] || errorout "$1: not a directory"
 
@@ -100,7 +100,7 @@ process_dir() {
 # take stock of the current tree under ./mprocess-sorted and move
 # folders to ~/Music properly
 move_to_music() {
-  local IFS=$'\n' artist_path album_path artist album
+  local artist_path album_path artist album
 
   while read -r artist_path; do
     while read -r album_path; do
