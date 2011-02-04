@@ -92,6 +92,7 @@ check() {
 
 # same as check() but sync the ABS tree first
 update-check() {
+  sudo true || exit 1 # enter password before echo -n
   echo -n 'syncing abs tree... '
   if sudo abs >/dev/null; then
     echo 'ok'
