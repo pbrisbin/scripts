@@ -157,15 +157,16 @@ if ! $good; then
   exit 1
 fi
 
+# show what was done:
+echo; tree "$sort"; echo
+
 # some optional post-sort actions
-if prompt "move $sort to $mdir"; then
+if prompt "merge $sort into $mdir"; then
   move_to_music && rm -r "$sort" || errorout 'failed to move to music'
 fi
 
 prompt "remove $orig" && rm -r "$orig"
-prompt 'update mpd db' && mpc update &>/dev/null
+prompt 'update mpd db' && mpc --wait update
 
 # http://github.com/pbrisbin/scripts/blob/master/coverart
-if prompt 'update covers in background'; then
-  coverart &>/dev/null &
-fi
+prompt 'update covers' && coverart
