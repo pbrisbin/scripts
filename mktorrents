@@ -35,7 +35,7 @@ parse_options() {
       -t|--torrents) shift; outdir="$(readlink -f "$1")"  ;;
       -a|--announce) shift; announce="$1"                 ;;
       -p|--port)     shift; port=$1                       ;;
-      -h|--helpt)    message                              ;;
+      -h|--help)     message                              ;;
       *)             files+=( "$(readlink -f "$1")" )     ;;
     esac
     shift
