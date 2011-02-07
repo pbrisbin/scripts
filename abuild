@@ -160,10 +160,10 @@ parse_options() {
 
   while [ -n "$1" ]; do
     case $1 in
-      -h|--help) message      ;;
-      -f|--fast) fast=true    ;;
-      -p|--help) print=true   ;;
-      *)         args+=("$1") ;;
+      -h|--help)  message      ;;
+      -f|--fast)  fast=true    ;;
+      -p|--print) print=true   ;;
+      *)          args+=("$1") ;;
     esac
     shift
   done
