@@ -22,11 +22,8 @@ get_nowplaying() {
 }
 
 link_image() {
-  local album last cover link
+  local album="$1" last cover link
   
-  # get now
-  album="$(get_nowplaying)"
-
   # get last
   read -r last < "$log"
 
