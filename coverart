@@ -60,24 +60,30 @@ while read -r directory; do
   filename="$directory/$cover"
 
   if [[ -f "$filename" ]]; then
+    # cover has already been placed at folder.jpg
     for file in "$directory"/*; do
+      # read tags
       read -r artist < <(mpc list artist any "${file/$mdir\//}")
       read -r album  < <(mpc list album any "${file/$mdir\//}")
       [[ -n "$artist$album" ]] && break
     done
 
     if [[ -n "$artist$album" ]]; then
+      # move to odir if needed
       ofilename="$odir/$(fix_filename "$artist" "$album")"
       [[ ! -f "$ofilename" ]] && cp -v "$filename" "$ofilename"
     fi
   else
     for file in "$directory"/*; do
+      # read tags
       read -r artist < <(mpc list artist any "${file/$mdir\//}")
       read -r album  < <(mpc list album any "${file/$mdir\//}")
       [[ -n "$artist$album" ]] && break
     done
 
+    # try and download to folder.jpg
     if [[ -n "$artist$album" ]] && fetch_cover "$artist" "$(clean_string "$album")" "$filename"; then
+      # move to odir if needed
       ofilename="$odir/$(fix_filename "$artist" "$album")"
       [[ ! -f "$ofilename" ]] && cp -v "$filename" "$ofilename"
     fi
