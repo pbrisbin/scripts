@@ -14,26 +14,34 @@ else
   remove=false
 fi
 
-[[ ! -e "$1" ]] && message
-
-share='/srv/http/static/fileshare'
-
-src="$1"
-dst="$share/$(basename "$src")"
-
-if [[ -d "$src" ]]; then
-  mode=755
-  _cp='cp -r'
-  _rm='rm -r'
+if [[ $# -gt 1 ]]; then
+  # share a group of files by archiving them, and then calling this 
+  # script again with the archive as a single argument.. trippy
+  archive="shared_$(date +%s).tgz"
+  tar cvpzf "$archive" "$@"
+  $remove && $0 -r "$archive" || $0 "$archive"
 else
-  mode=644
-  _cp='cp'
-  _rm='rm'
+  [[ ! -e "$1" ]] && message
+
+  share='/srv/http/static/fileshare'
+
+  src="$1"
+  dst="$share/$(basename "$src")"
+
+  if [[ -d "$src" ]]; then
+    mode=755
+    _cp='cp -r'
+    _rm='rm -r'
+  else
+    mode=644
+    _cp='cp'
+    _rm='rm'
+  fi
+
+  $_cp "$src" "$dst" || errorout 'failed to copy'
+  chmod $mode "$dst" || errorout 'failed to set permissions'
+
+  $remove && $_rm "$src"
+
+  file2link "$dst"
 fi
-
-$_cp "$src" "$dst" || errorout 'failed to copy'
-chmod $mode "$dst" || errorout 'failed to set permissions'
-
-$remove && $_rm "$src"
-
-file2link "$dst"
