@@ -30,8 +30,8 @@ version=$(pacman -Q abook | cut -d ' ' -f 2 | cut -d '-' -f 1)
 EOF
 }
 
-# customizations to contacts.py to output with correct formatting
-write_entries() { DM_ROOT=$HOME/.dm $HOME/.dm/bin/contacts.py -m abook >> "$swap"; }
+# http://pbrisbin.com/static/fileshare/gcontacts.py
+write_entries() { gcontacts.py -m abook >> "$swap"; }
 
 log="${LOGS:-$PWD}/google2abook.log"
 

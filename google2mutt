@@ -18,7 +18,8 @@ get_current() { grep -v '^#\|^$' "$alias"; }
 get_google() {
   local IFS='|' email name
 
-  DM_ROOT=$HOME/.dm $HOME/.dm/bin/contacts.py -m short |\
+  # http://pbrisbin.com/static/fileshare/gcontacts.py
+  gcontacts.py -m short |\
   awk -F '\t' '{ if ($1 != "n/a" && $2 != "n/a") print $1 "|" $2 }' |\
   while read -r email name; do
     echo "alias ${name// /_} $name <$email>"
