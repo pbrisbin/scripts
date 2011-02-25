@@ -8,7 +8,7 @@
 ###
 
 errorout() { echo "error: $*" >&2; exit 1; }
-message()  { echo 'usage: deploy [ --force | --test | --help ]'; exit 1; }
+message()  { echo 'usage: deploy [ --test ]'; exit 1; }
 
 cp_file() {
   local file="$1" dest="$2" _cp
@@ -27,8 +27,9 @@ compile_app() {
   local opt="$1" dest="$2"
 
   echo 'recompiling the application...'
-  $force && find ./ -type f -name '*.hs' -exec touch {} \;
+  touch Settings.hs Helpers/AlbumArt.hs # so that CPP options will always take
   ghc $opt --make -o app.cgi fastcgi.hs || errorout 'failed'
+  touch Settings.hs Helpers/AlbumArt.hs
   cp_file app.cgi "$dest/"
 
 }
@@ -46,19 +47,12 @@ test_deploy() {
   cp_file "$prodsite/static"  "$testsite/"
   cp_file "$prodsite/favicon.ico" "$testsite/"
 
-  # push files up from dev
-  echo 'updating test files from dev...'
-  cp_file cassius "$testsite/"
-
   # setup lighttpd for local instance
   cp /etc/lighttpd/dev.conf "$testsite/"
 
-  # compile into test site
   compile_app '' "$testsite"
-
   migrate_db
 
-  # start services
   cd "$testsite"
   echo 'starting test server...'
   lighttpd -D -f dev.conf
@@ -67,30 +61,17 @@ test_deploy() {
 prod_deploy() {
   sudo true # get our pw upfront
 
-  # stop services
   if pgrep lighttpd &>/dev/null; then
     echo 'stopping services...'
     sudo /etc/rc.d/lighttpd stop || errorout 'failed'
   fi
 
-  # push up to prod
-  echo 'updating prod files...'
-  cp_file cassius "$prodsite/"
-
-  # compile app into prodsite
   compile_app '-DPROD' "$prodsite"
-
   migrate_db
-
   adjust_permissions
 
-  # start services
   echo 'starting production services...'
   sudo /etc/rc.d/lighttpd start || errorout 'failed'
-
-  # touch Settings.hs so the next dev-compile doesn't use the same 
-  # pre-processor constants
-  touch Settings.hs
 }
 
 # only called in a PROD deployment
@@ -117,7 +98,6 @@ migrate_db() {
   fi
 }
 
-
 # constants
 devsite="$HOME/Code/haskell/devsite"
 testsite="$HOME/http-test"
@@ -128,13 +108,11 @@ prod_db='posts.s3db'
 test_db="$dev_db"
 
 # defaults
-force=false
 test=false
 
 # getopts
 while [[ -n "$1" ]]; do
   case "$1" in
-    -f|--force) force=true ;;
     -t|--test)  test=true  ;;
     *)          message    ;;
   esac
@@ -144,10 +122,6 @@ done
 # run
 cd "$devsite" || errorout 'failed to change directory'
 
-if $test; then
-  test_deploy
-else
-  prod_deploy
-fi
+$test && test_deploy || prod_deploy
 
 echo 'done.'
