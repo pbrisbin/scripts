@@ -27,9 +27,9 @@ compile_app() {
   local opt="$1" dest="$2"
 
   echo 'recompiling the application...'
-  touch Settings.hs Helpers/AlbumArt.hs # so that CPP options will always take
+  touch Settings.hs # so that CPP options will always take
   ghc $opt --make -o app.cgi fastcgi.hs || errorout 'failed'
-  touch Settings.hs Helpers/AlbumArt.hs
+  touch Settings.hs
   cp_file app.cgi "$dest/"
 
 }
