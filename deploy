@@ -28,7 +28,7 @@ compile_app() {
 
   echo 'recompiling the application...'
   touch Settings.hs # so that CPP options will always take
-  ghc $opt --make -o app.cgi fastcgi.hs || errorout 'failed'
+  ghc $opt -threaded --make -o app.cgi fastcgi.hs || errorout 'failed'
   touch Settings.hs
   cp_file app.cgi "$dest/"
 
@@ -41,7 +41,6 @@ test_deploy() {
 
   # pull files down from prod
   echo 'updating test files from prod...'
-  cp_file "$prodsite/pandoc"  "$testsite/"
   cp_file "$prodsite/xmonad"  "$testsite/"
   cp_file "$prodsite/haskell" "$testsite/"
   cp_file "$prodsite/static"  "$testsite/"
