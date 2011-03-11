@@ -26,16 +26,11 @@ remove_cabal_packages() {
 reinstall_cabal_packages() {
   cabal update
 
-  # xmonad
-  cabal install xmonad xmonad-contrib
-
   # xmonad helpers
   cabal install http tagsoup
 
   # yesod
   cabal install yesod                 \
-                yesod-auth            \
-                yesod-form            \
                 yesod-newsfeed        \
                 persistent-sqlite     \
                 wai-handler-fastcgi   \
