@@ -68,7 +68,9 @@ compare_versions() {
 
   # note: an uninstalled package will always show up as 'update
   # available'
-  [[ $(vercmp $v_abs $(pacman -Q "$pkg" | cut -d ' ' -f 2)) -gt 0 ]] && echo "$pkg"
+  read -r v < <(pacman -Q "$pkg" | cut -d ' ' -f 2)
+
+  [[ $(vercmp $v_abs $v) -gt 0 ]] && echo "$pkg: ${v:-?} -> $v_abs"
 }
 
 # add one or more pkgnames to the watch list
