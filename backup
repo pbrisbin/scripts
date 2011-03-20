@@ -30,7 +30,7 @@ excludes=( Downloads lost+found )
 
 # my large media collection is handled specially
 media_backup='/mnt/backup2'
-media_includes=( /mnt/data1/Rips /mnt/data2/Movies /mnt/data2/TV_shows )
+media_includes=( /mnt/media/Music /mnt/media/Rips /mnt/media/Movies /mnt/media/TV_shows )
 media_excludes=( converted )
 
 if [[ "$1" = '--media' ]]; then
