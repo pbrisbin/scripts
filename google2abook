@@ -31,7 +31,8 @@ EOF
 }
 
 # http://pbrisbin.com/static/fileshare/gcontacts.py
-write_entries() { gcontacts.py -m abook >> "$swap"; }
+#write_entries() { gcontacts.py -m abook >> "$swap"; }
+write_entries() { $HOME/Code/bin/gcontacts.py -m abook >> "$swap"; }
 
 log="${LOGS:-$PWD}/google2abook.log"
 

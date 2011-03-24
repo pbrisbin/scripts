@@ -19,7 +19,8 @@ get_google() {
   local IFS='|' email name
 
   # http://pbrisbin.com/static/fileshare/gcontacts.py
-  gcontacts.py -m short |\
+  #gcontacts.py -m short |\
+  $HOME/Code/bin/gcontacts.py -m short |\
   awk -F '\t' '{ if ($1 != "n/a" && $2 != "n/a") print $1 "|" $2 }' |\
   while read -r email name; do
     echo "alias ${name// /_} $name <$email>"
