@@ -59,8 +59,6 @@ rsync -a -l --delete --delete-excluded "${includes[@]}" ${excludes[@]/#/--exclud
 echo 'done.'
 
 echo -n 'generating package lists... '
-# falconindy broke it
-#pacman -Qqe | grep -Fvx "$(pacman -Qqm)" > "$backup_dir/paclog" || errorout 'failed creating paclisting'
-pacman -Qqe | grep -Fvx "$(pacman -Qqm </dev/null)" > "$backup_dir/paclog" || errorout 'failed creating paclisting'
+pacman -Qqe | grep -Fvx "$(pacman -Qqm)" > "$backup_dir/paclog" || errorout 'failed creating paclisting'
 pacman -Qqm > "$backup_dir/aurlog"                              || errorout 'failed creating aur listing'
 echo 'done.'
