@@ -88,7 +88,8 @@ clean='.bashrc
        .config/openbox/rc.xml
        .config/openbox/menu.xml
        .ncmpcpp/config
-       .irssi/my.theme'
+       .irssi/my.theme
+       .htoprc'
 
 # must be scrubbed
 dirty='.mutt/muttrc
