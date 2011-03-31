@@ -89,7 +89,8 @@ clean='.bashrc
        .config/openbox/menu.xml
        .ncmpcpp/config
        .irssi/my.theme
-       .htoprc'
+       .htoprc
+       .vim/colors/zenburn.vim'
 
 # must be scrubbed
 dirty='.mutt/muttrc
