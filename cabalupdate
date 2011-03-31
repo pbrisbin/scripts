@@ -26,8 +26,8 @@ remove_cabal_packages() {
 reinstall_cabal_packages() {
   cabal update
 
-  # xmonad helpers
-  cabal install http tagsoup
+  # xmonad
+  cabal install xmonad xmonad-contrib
 
   # yesod
   cabal install yesod                 \
@@ -35,10 +35,9 @@ reinstall_cabal_packages() {
                 persistent-sqlite     \
                 wai-handler-fastcgi   \
                 -fhighlighting pandoc \
-                libmpd
-
-  # other
-  cabal install haddock
+                hlint                 \
+                yeganesh              \
+                haddock
 }
 
 [[ "$1" =~ -h|--help ]] && message
