@@ -31,7 +31,7 @@ write_config() {
 #
 # this example config uses dzen
 #
-# \$mydir exists, and it's value is $mydir
+# \$mydir exists, and its value is $mydir
 #
 ###
 
