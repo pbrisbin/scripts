@@ -20,13 +20,9 @@ choice_by_zenity() {
 }
 
 choice_by_dmenu() {
-  if [[ -f "$HOME/.dmenurc" ]]; then
-    . "$HOME/.dmenurc"
-  else
-    DMENU='dmenu -i'
-  fi
+  local dmenu="dmenu ${DMENU_OPTS:--i}"
 
-  choice="$(echo -e "0: Logout\n1: Reboot\n2: Shutdown" | $DMENU | cut -d ':' -f 1)"
+  choice="$(echo -e "0: Logout\n1: Reboot\n2: Shutdown" | $dmenu | cut -d ':' -f 1)"
 }
 
 [[ -z "$DISPLAY" ]] && exit 1

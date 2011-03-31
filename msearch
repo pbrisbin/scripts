@@ -4,15 +4,11 @@
 #
 ###
 
-if [[ -f "$HOME/.dmenurc" ]]; then
-  . "$HOME/.dmenurc"
-else
-  DMENU='dmenu -i'
-fi
+dmenu="dmenu ${DMENU_OPTIONS:--i}"
 
 [[ "$*" = 'all' ]] && regex='.*' || regex="$*"
 
 # dmenu with my choice of font has a 90 character limit
-choice=$(mpc --format '%position% %title% by %artist% on %album%' playlist | grep -i "$regex" | cut -c 1-90 | $DMENU | awk '{print $1}')
+choice=$(mpc --format '%position% %title% by %artist% on %album%' playlist | grep -i "$regex" | cut -c 1-90 | $dmenu | awk '{print $1}')
 
 [[ -n "$choice" ]] && mpc --no-status play $choice

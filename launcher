@@ -42,7 +42,7 @@ dellauncher() {
 dmlrun() { 
   local exe
 
-  exe="$((ls $cache; echo -e "add\ndel") | $DMENU)"
+  exe="$((ls $cache; echo -e "add\ndel") | $dmenu)"
   
   if [[ -n "$exe" ]]; then
     case "$exe" in
@@ -54,8 +54,7 @@ dmlrun() {
 }
 
 parse_options() {
-  # get a dmenu executable
-  [[ -f "$HOME/.dmenurc" ]] && . "$HOME/.dmenurc" || DMENU='dmenu -i'
+  dmenu="dmenu ${DMENU_OPTIONS:--i}"
 
   # make cache
   [[ -d "$cache" ]] || mkdir -p "$cache"
