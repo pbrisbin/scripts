@@ -11,19 +11,18 @@
 #
 # examples:
 #
+#  mpd's not working...
+#
 #  //blue/0/~/ cando mpd Music/
 #  cando:  d---  /home/patrick/Music/
 #
+#  i'm having an issue with comments on my site...
+#
 #  //blue/0/~/ cando http /srv/http/*
 #  cando:  -rwx  /srv/http/app.cgi
-#  cando:  dr-x  /srv/http/cassius
 #  cando:  -rw-  /srv/http/client_session_key.aes
-#  cando:  -rw-  /srv/http/comments.db
+#  cando:  -r--  /srv/http/comments.db
 #  cando:  -r--  /srv/http/favicon.ico
-#  cando:  dr-x  /srv/http/hamlet
-#  cando:  dr-x  /srv/http/pandoc
-#  cando:  dr-x  /srv/http/static
-#  cando:  dr-x  /srv/http/xmonad
 #
 ###
 
@@ -41,16 +40,17 @@ set_info() {
 # enter each directory, else we shouldn't even bother checking the
 # permissions on the file itself
 can_access() {
-  local absolute
+  _pwd="$PWD"
 
-  absolute="$(readlink -f "$1")"
-  cd "$(dirname -- "$absolute")" || errorout 'failed to change directory'
+  cd "$(dirname -- "$1")" || errorout 'failed to change directory'
 
   while [[ "$PWD" != '/' ]]; do
     set_info "$PWD"
     can_exec || return 1
     cd ..    || errorout 'failed to change directory'
   done
+
+  cd "$_pwd"
 }
 
 # helper checks
@@ -82,7 +82,14 @@ can_write() { has_mode 7 6 3 2; }
 can_exec()  { has_mode 7 5 3 1; }
 
 process_file() {
-  local file="$1"
+  local arg="$1"
+  local file="$(readlink -f "$arg")"
+
+  # handle symlinks
+  if [[ -L "$arg" ]] && ! can_access "$arg"; then
+    echo "cando:  l---  $arg -> $file"
+    return
+  fi
 
   if [[ ! -e "$file" ]]; then
     echo "$file: does not exist" >&2
