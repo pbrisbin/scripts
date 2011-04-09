@@ -72,7 +72,7 @@ srv_url='http://pbrisbin.com'
 [[ $# -ne 2 ]] && message
 
 action="$1"
-file_url="$srv_url/posts/$(basename "$2" .pdc)/"
+file_url="$srv_url/posts/$(basename "$2" .pdc)"
 
 case "$action" in
   --open)   doopen   ;;
