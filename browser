@@ -7,15 +7,7 @@
 #
 ###
 
-#browser='jumanji'
-browser='chromium'
-
 [[ -n "$DISPLAY" ]] || exit 1
 
-if [[ -n "$*" ]]; then 
-  # jumanji will act funny with literally '' passed as an argument so
-  # we'll only do it if there's actually something there
-  $browser "$*" &>/dev/null &
-else
-  $browser &>/dev/null &
-fi
+browser='chromium'
+$browser "$@" &>/dev/null & exit 0

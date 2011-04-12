@@ -73,6 +73,7 @@ ignores="$HOME/.dotfile_ignores"
 
 # can be copied as-is
 clean='.bashrc
+       .lscolors
        .Xdefaults
        .Xmodmap
        .xcolors/zenburn.xcolors
