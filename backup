@@ -8,7 +8,7 @@
 ###
 
 errorout() { echo "error: $*" >&2; exit 1; }
-message()  { echo 'usage: backup [ -d | -m | --media ]'; exit 1; }
+message()  { echo 'usage: backup [ -d | -m | --media ] [ rsync options ]'; exit 1; }
 
 check_lock() {
   local drive="$1"
@@ -18,6 +18,8 @@ check_lock() {
   # if we get here we fail
   errorout "$drive/.lock not found. is it mounted?"
 }
+
+[[ "$1" =~ -h|--help ]] && message
 
 # must be root
 [[ $(id -u) -eq 0 ]] || errorout 'only root can do that.'
@@ -31,14 +33,14 @@ excludes=( Downloads lost+found )
 # my large media collection is handled specially
 media_backup='/mnt/backup2'
 media_includes=( /mnt/media/Music /mnt/media/Rips /mnt/media/Movies /mnt/media/TV_shows )
-media_excludes=( converted )
 
 if [[ "$1" = '--media' ]]; then
+  shift
+
   # do a media backup and exit
   check_lock "$media_backup"
-  echo -n "syncing media to $media_backup/... "
-  rsync -a -l --delete --delete-excluded "${media_includes[@]}" ${media_excludes[@]/#/--exclude } "$media_backup/"
-  echo 'done.'
+  echo "syncing media to $media_backup/... "
+  rsync -a -l --delete "$@" "${media_includes[@]}" "$media_backup/"
   exit $?
 fi
 
@@ -48,17 +50,17 @@ case "$1" in
   *)            message                      ;;
 esac
 
+shift
+
 # default
 backup_dir="${backup_dir:-$backup_daily}"
 
 # is mounted
 check_lock "$backup_dir"
 
-echo -n "syncing directories to $backup_dir/... "
-rsync -a -l --delete --delete-excluded "${includes[@]}" ${excludes[@]/#/--exclude } "$backup_dir/"
-echo 'done.'
+echo "syncing directories to $backup_dir/... "
+rsync -a -l --delete --delete-excluded "$@" "${includes[@]}" ${excludes[@]/#/--exclude } "$backup_dir/"
 
-echo -n 'generating package lists... '
+echo 'generating package lists... '
 pacman -Qqe | grep -Fvx "$(pacman -Qqm)" > "$backup_dir/paclog" || errorout 'failed creating paclisting'
 pacman -Qqm > "$backup_dir/aurlog"                              || errorout 'failed creating aur listing'
-echo 'done.'
