@@ -35,6 +35,7 @@ reinstall_cabal_packages() {
                 persistent-sqlite     \
                 wai-handler-fastcgi   \
                 -fhighlighting pandoc \
+                libmpd                \
                 hlint                 \
                 yeganesh              \
                 haddock
