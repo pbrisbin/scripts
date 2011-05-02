@@ -2,7 +2,17 @@
 
 logger() { echo "$(date +'[ %d %b %Y %H:%M ]') :: $*" | tee -a "$tmplog"; }
 
-errorout() { logger "error: $*"; exit 1; }
+errorout() {
+  ( if [[ -n "$tmplog" ]]; then
+      logger "error: $*"
+    else
+      echo "error: $*"
+    fi
+
+  ) >&2
+
+  exit 1
+}
 
 send_to_log() {
   while read -r; do
