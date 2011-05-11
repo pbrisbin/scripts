@@ -80,7 +80,6 @@ clean='.bashrc
        .xcolors/jasonwryan.xcolors
        .xinitrc
        .screenrc
-       .vimrc
        .conkyrc
        .dmenurc
        .dzen_conkyrc
