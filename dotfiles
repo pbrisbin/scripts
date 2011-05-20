@@ -1,111 +1,121 @@
 #!/bin/bash
 #
-# pbrisbin 2010
+# pbrisbin 2011
+#
+# A mapping file at ~/.dotfiles_mapping will be used to determine what
+# files get linked out of ~/.dotfiles/$file and into the required
+# ~/$file location.
+#
+# Optionally, provide a second value on the line; when true, the file
+# will also be linked into /root/$file. this requires a sudo binary be
+# available to execute the linking as root and currently only works for
+# top level dotfiles (.foo.rc, not .config/foo.rc).
+#
+# ---
+# ###
+# #
+# # Example mapping file
+# #
+# # '#' provides expected comment behavior
+# #
+# ###
+# .bashrc true # copies this one into /root too
+# .htoprc
+# .config/ncmpcpp
+# ---
 #
 ###
 
-message() { echo 'usage: dotfiles [ pull ]'; exit 1; }
+errorout() { echo "error: $*" >&2; exit 1; }
 
-errorout() { echo "$*" >&2; exit 1; }
+message()  { # {{{
+  cat << EOF
+  usage: dotfiles [ --pull ] [ --force ]
 
-ignore_file() {
-  [[ ! -f "$ignores" ]] && return 1
+    --pull      pull from git before linking files
 
-  grep -Fqx "$1" "$ignores"
+    --force     don't be shy about overwriting files
+
+EOF
+
+  exit 1
 }
+# }}}
 
-do_pull() {
-  local source
-
-  if [[ -d "$dotfiles" ]]; then
-    # update local files
+refresh_git() { # {{{
+  # repo already exists
+  if [[ -d "$dotfiles/.git" ]]; then
     cd $dotfiles && git pull origin
-  else
-    # clone from remote
-    git clone "$remote" "$dotfiles"
+    return
   fi
 
-  cd "$dotfiles" || errorout 'failed to change directory'
-
-  # copy any existing clean dotfiles into their actual locations
-  for source in $clean; do
-    if [[ -f "$HOME/$source" ]] && ! ignore_file "$source"; then
-      cp -v "$source" "$HOME/$source"
+  # directory already exists but is not a repo
+  if [[ -d "$dotfiles" ]]; then
+    if $force; then
+      rm -rf "$dotfiles"
+    else
+      errorout "$dotfiles exists, remove before pulling."
     fi
-  done
+  fi
+
+  # clone it
+  git clone "$remote" "$dotfiles"
 }
+# }}}
 
-do_push() {
-  local source
+link_file() { # {{{
+  local src="$1" dst="$2" asroot="$3" dir
 
-  # get sed scrubme pattern from a mod 600 cred file
-  . "$HOME/.credentials"
+  if [[ -e "$dst" ]] && ! $force; then
+    errorout "$dst exists, remove before linking"
+  fi
 
-  # if we don't now know what to scrub, GTFO
-  [[ -z "$scrubme" ]] && errorout 'scrub pattern not found'
+  # todo: make this work for root
+  if ! $asroot; then
+    # make the dir if it doesn't exist yet
+    dir="${dst%/*}"; [[ -d "$dir" ]] || mkdir -p "$dir"
+  fi
 
-  cd "$HOME" || errorout 'failed to change directory'
-
-  for source in $clean; do
-    if [[ -f "$HOME/$source" ]]; then
-      dest="$dotfiles/${source}"
-      cp "$HOME/$source" "$dest"
-    fi
-  done
-
-  for source in $dirty; do
-    if [[ -f "$HOME/$source" ]]; then
-      dest="$dotfiles/${source}"
-      sed "$scrubme" "$HOME/$source" > "$dest"
-    fi
-  done
+  echo "linking ${src/$HOME/~} --> ${dst/$HOME/~}"
+  $asroot && sudo ln -s -f "$src" "$dst" || ln -s -f "$src" "$dst"
 }
+# }}}
 
-# local dotfiles
-dotfiles="$HOME/.dotfiles"
+disperse() { # {{{
+  local src
 
-# clonable url once pushed
+  [[ -f "$mapping" ]] || errorout "dotfiles mapping not found"
+
+  while read -r file root; do
+    src="$dotfiles/$file"
+
+    [[ -e "$src" ]] || continue # silently skip
+
+    link_file "$src" "$HOME/$file" false
+
+    if [[ -n "$root" ]] && $root; then
+      link_file "$src" "/root/$file" true
+    fi
+  done < <(sed '/^$/d;/^#.*$/d;s/#.*$//g' "$mapping") # strip comments
+}
+# }}}
+
+pull=false
+force=false
+
 remote='git://github.com/pbrisbin/dotfiles.git'
+dotfiles="$HOME/.dotfiles"
+mapping="$HOME/.dotfiles_mapping"
 
-# in each client, put one file per line in a file to ignore it during a
-# pull operation
-ignores="$HOME/.dotfile_ignores"
+while [[ -n "$1" ]]; do
+  case "$1" in
+    --pull)  pull=true  ;;
+    --force) force=true ;;
+    *)       message    ;;
+  esac
+  shift
+done
 
-# can be copied as-is
-clean='.bashrc
-       .lscolors
-       .Xdefaults
-       .Xmodmap
-       .xcolors/zenburn.xcolors
-       .xcolors/jasonwryan.xcolors
-       .xinitrc
-       .screenrc
-       .conkyrc
-       .dmenurc
-       .dzen_conkyrc
-       .dvdcopy.conf
-       .config/aurgetrc
-       .config/openbox/rc.xml
-       .config/openbox/menu.xml
-       .ncmpcpp/config
-       .irssi/my.theme
-       .htoprc
-       .vim/colors/zenburn.vim'
+$pull && refresh_git
 
-# must be scrubbed
-dirty='.mutt/muttrc
-       .mutt/gmx.muttrc
-       .mutt/gmail.muttrc
-       .mutt/colors.muttrc
-       .mutt/sidebar.muttrc
-       .offlineimaprc
-       .msmtprc
-       .irssi/config'
-
-if [[ -n "$1" ]]; then
-  # allow client-side pulls
-  [[ "$1" = 'pull' ]] && do_pull || message
-else
-  # default is push
-  do_push
-fi
+disperse
