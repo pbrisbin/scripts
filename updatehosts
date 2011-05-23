@@ -83,6 +83,7 @@ lanips=(
   'howard::192.168.0.7'
   'susan::192.168.0.8'
   'htpc::192.168.0.9'
+  'bruno::192.168.0.19'
   )
 
 $verbose && logger "backing up $hosts..."
