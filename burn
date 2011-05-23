@@ -168,6 +168,10 @@ parse_options() {
 main() {
   rm -rf "$dir"; mkdir "$dir"
 
+  if [[ "${#args[@]}" -eq 1 ]] && [[ "${args[0]}" =~ .iso$ ]]; then
+    burn_iso "${args[0]}"
+  fi
+
   case "$mode" in
     CDA) burn_cda "${args[@]}"                  ;;
     ISO) make_iso "${args[@]}"; cp -v "$iso" ./ ;;
