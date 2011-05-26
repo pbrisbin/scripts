@@ -41,9 +41,9 @@ test_deploy() {
 
   # pull files down from prod
   echo 'updating test files from prod...'
-  cp_file "$prodsite/xmonad"  "$testsite/"
-  cp_file "$prodsite/haskell" "$testsite/"
-  cp_file "$prodsite/static"  "$testsite/"
+  cp_file "$prodsite/xmonad"      "$testsite/"
+  cp_file "$prodsite/haskell"     "$testsite/"
+  cp_file "$prodsite/static"      "$testsite/"
   cp_file "$prodsite/favicon.ico" "$testsite/"
 
   # setup lighttpd for local instance
@@ -76,23 +76,23 @@ prod_deploy() {
 # only called in a PROD deployment
 adjust_permissions() {
   echo 'fixing permissions...'
-  sudo chown root:http "$prodsite"
+  sudo chown    root:http    "$prodsite"
   sudo chown -R patrick:http "$prodsite"/*
-  sudo chown http:http "$prodsite/app.cgi"
-  sudo chown http:http "$prodsite/client_session_key.aes"
-  sudo chown http:http "$prodsite/$prod_db"
+  sudo chown    http:http    "$prodsite/app.cgi"
+  sudo chown    http:http    "$prodsite/client_session_key.aes"
+  sudo chown    http:http    "$prodsite/$db"
 }
 
 migrate_db() {
   if $test; then
     # always overwrite a test database
     echo 'migrating database...'
-    cp "$dev_db" "$testsite/$test_db"
+    cp "$db" "$testsite/"
   else
     # never overwrite a prod database
-    if [[ ! -e "$prodsite/$prod_db" ]]; then
+    if [[ ! -e "$prodsite/$db" ]]; then
       echo 'migrating database...'
-      sudo cp "$dev_db" "$prodsite/$prod_db"
+      sudo cp "$db" "$prodsite/"
     fi
   fi
 }
@@ -101,10 +101,7 @@ migrate_db() {
 devsite="$HOME/Code/haskell/devsite"
 testsite="$HOME/http-test"
 prodsite='/srv/http'
-
-dev_db='dev-posts.s3db'
-prod_db='posts.s3db'
-test_db="$dev_db"
+db='db.s3db'
 
 # defaults
 test=false
