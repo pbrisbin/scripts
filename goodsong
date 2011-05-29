@@ -93,26 +93,23 @@ get_pos() {
 
 # returns current seconds remaining
 get_lag() {
-  local time curm curs totm tots lag N
+  local time curm curs totm tots lag n
 
-  time="$(mpc | awk '/playing/ {print $3}')"
+  IFS=':/' read curm curs totm tots < <(mpc | awk '/playing/ { print $3 }')
 
-  if [[ -n "$time" ]]; then
-    while IFS=':' read -r curm curs totm tots; do
-      cur=$((curm*60+curs))
-      tot=$((totm*60+tots))
-
-      lag=$((tot-cur))
-    done <<< "${time////:}"
+  if [[ -z "$curm$curs$totm$tots" ]]; then
+    lag=0 # blanks means stopped
+  else
+    cur=$((curm*60+curs))
+    tot=$((totm*60+tots))
+    lag=$((tot-cur))
 
     # adjust lag based on crossfade
-    N=$(mpc crossfade | awk '{print $2}')
-    [[ -n "$N" ]] && lag=$((lag-N))
-
-    echo "$lag"
-  else
-    echo "0"
+    read n < <(mpc crossfade | awk '{ print $2 }')
+    [[ -n "$n" ]] && lag=$((lag-n))
   fi
+
+  echo "$lag"
 }
 
 # build a playlist and play it
@@ -124,7 +121,7 @@ add_to_list() {
   mpc | grep -Fq playing || exit 1
 
   # get song filename
-  song="$(mpc --format %file% | head -n 1)"
+  read song < <(mpc --format %file% | head -n 1)
 
   # add it -- prevent dupes
   grep -Fqx "$song" "$list" || echo "$song" >> "$list"
@@ -156,7 +153,7 @@ parse_options() {
 }
 
 list="$(mpdParam 'playlist_directory')/goodsongs.m3u"
-touch "$list" 2>/dev/null || errorout 'unable to write playlist file'
+touch "$list" &>/dev/null || errorout 'unable to write playlist file'
 
 parse_options "$@"
 
