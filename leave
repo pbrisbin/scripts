@@ -16,7 +16,7 @@
 errorout() { echo "error: $*"                 ; exit 1; }
 message()  { echo 'usage: leave [ --no-sudo ]'; exit 1; }
 
-have() { which $1 &>/dev/null }
+have() { which $1 &>/dev/null; }
 
 [[ "$1" =~ -h|--help ]] && message
 
@@ -50,11 +50,11 @@ else
   have pm-hibernate && choices[hibernate]='pm-hibernate'
 fi
 
-dmenu="dmenu ${DMENU_OPTS:--i}"
+dmenu="dmenu ${DMENU_OPTIONS:--i}"
 
 choice="$(printf "%s\n" "${!choices[@]}" | $dmenu)" 
 
-if [[ -n "$choice"]]; then
+if [[ -n "$choice" ]]; then
   action="${choices[$choice]}"
-  [[ -n "$action"]] && $action
+  [[ -n "$action" ]] && $action
 fi
