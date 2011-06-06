@@ -4,6 +4,8 @@
 #
 # accepts ical on STDIN and spits reminders file on STDOUT
 #
+# original url: http://wiki.43folders.com/index.php/ICal2Rem
+#
 ###
 
 use strict;
