@@ -1,13 +1,11 @@
 #!/bin/bash
 #
-# pbrisbin 2009
+# pbrisbin 2009,2010,2011
 #
 ###
 
-# help
-message() { echo 'usage: efind <directory> <...> [-delete]'; exit 1; }
+message() { echo 'usage: efind <directory> <...> [ -delete ]'; exit 1; }
 
-# get opts
 while [ -n "$1" ]; do
   case "$1" in
     -h|--help) message      ;;
@@ -21,7 +19,7 @@ done
 [[ "${#args[@]}" -eq 0 ]] && args=('./')
 
 # no delete is default
-${delete:-false} && action='rm -rf' || action='echo'
+${delete:-false} && action='rm -r' || action='echo'
 
 for dir in "${args[@]}"; do
   find "$dir" -depth -type d -empty -exec $action {} \;
