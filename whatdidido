@@ -4,19 +4,22 @@
 #
 ###
 
-errorout() { echo "$*"; exit 1; }
+errorout() { echo "$*" >&2; exit 1; }
 
 message() {
-  echo 'usage:'  
-  echo
-  echo "  $(basename "$0") m"
-  echo '     show me what i'\''ve upgraded looking back'
-  echo '     a maximum m -Syu s'
-  echo
-  echo "  $(basename "$0") m n"
-  echo '     show me what i'\''ve upgraded looking back'
-  echo '     between minimum n and maximum m -Syu s'
-  echo
+  cat << EOF
+  usage:
+
+    $(basename "$0") <max>
+
+      show me what i've upgraded looking back a maximum <max> -Syu s
+
+    $(basename "$0") <max> <min>
+
+      show me what i've upgraded looking back between minimum <min> and
+      maximum <max> -Syu s
+
+EOF
   exit 1
 }
 
