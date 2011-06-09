@@ -7,18 +7,20 @@
 ###
 
 message() {
-  echo 'usage: pirateseaerch [options] [search terms]'
-  echo
-  echo '  options:'
-  echo '        -a, --audio      search audio torrents'
-  echo '        -v, --video      search video torrents'
-  echo '        -A, --apps       search application torrents'
-  echo '        -g, --games      search games torrents'
-  echo '        -o, --other      search other torrents'
-  echo '        -h, --help       display this'
-  echo
-  echo '        none             search all torrents'
-  echo
+  cat << EOF
+  usage: pirateseaerch [ options ] [ search terms ]
+
+    options:
+          -a, --audio      search audio torrents
+          -v, --video      search video torrents
+          -A, --apps       search application torrents
+          -g, --games      search games torrents
+          -o, --other      search other torrents
+          -h, --help       display this
+
+          none             search all torrents
+
+EOF
   exit 1
 }
 
