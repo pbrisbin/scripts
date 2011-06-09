@@ -74,12 +74,12 @@ get_page() {
 # goes through 30 results at a time (as the user hits m), print the
 # entries out of the INFO and LINKS arrays.
 display_results() {
-  local link info
+  local link info uploaded size fmt='%-3.3s %-57.57s %-11.11s %9.9s\n'
 
-  # starts empty, increments by 30 with each loop
   count="${count:-0}"
 
-  echo -e "  Num\tUploaded    Size\tName"
+  printf "$fmt" 'Num' 'Name' 'Uploaded' 'Size'
+
   while [[ -n "${LINKS[count]}" ]]; do
     # get the nth entry from each array
     link="${LINKS[count]}"
@@ -87,10 +87,11 @@ display_results() {
 
     # make them prettier
     link="$(echo "${link#*|}" | sed 's/\(_\|\.\)+*/ /g')"
-    info="${info/\|/ }"
-
+    uploaded="${info%|*}"
+    size="${info#*|}"
     count=$((count+1))
-    echo -e "  $count\t$info\t$link"
+
+    printf "$fmt" "$count" "$link" "$uploaded" "$size"
   done
 }
 
