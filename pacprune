@@ -11,7 +11,7 @@
 #
 ###
 
-versions_to_keep=3
+versions_to_keep=${1:-3}
 
 parse() {
   local package opt
