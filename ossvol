@@ -1,33 +1,35 @@
 #!/bin/bash
 #
-# pbrisbin 2009, 2010
+# pbrisbin 2009, 2010, 2011
 #
 # ossvol is a simple script to manage oss volume levels and muting.
 #
-# original script by Daniel J Griffiths <ghost1227@archlinux.us> dzen
+# original script by Daniel J Griffiths <ghost1227@archlinux.us>, dzen
 # OSD concept by breunig
 #
 ###
 
 message() {
-  echo "usage: ossvol [option] [argument]"
-  echo
-  echo "  options:"
-  echo "        -i, --increase   increase volume by [argument]"
-  echo "        -d, --decrease   decrease volume by [argument]"
-  echo "        -t, --toggle     toggle mute on and off"
-  echo
+  cat << EOF
+  usage: ossvol [option] [argument]"
+
+    options:
+      -i, --increase   increase volume by [argument]
+      -d, --decrease   decrease volume by [argument]
+      -t, --toggle     toggle mute on and off
+
+EOF
   exit 1
 }
 
 # sets the volume level and stores the value in the var level for output
 # via dzen or whatever
-set_level() { level=$(ossmix $channel -- $1 | cut -d ' ' -f 8); }
+set_level() { read -r level < <(ossmix $channel -- $1 | cut -d ' ' -f 8); }
 
 # toggles mute on/off
 toggle() {
   if [[ -f "$volume" ]]; then
-    set_level $(cat "$volume")
+    set_level $(< "$volume")
     rm "$volume"
   else
     ossmix $channel | cut -d ' ' -f 10 | cut -d '.' -f 1 > "$volume"
@@ -42,7 +44,7 @@ adjust() {
   # restore from mute
   if [[ -f "$volume" ]]; then
     # arg is now stored volume +/- argument
-    arg="+$[ $(cat "$volume") $arg ]"
+    arg="+$[ $(< "$volume") $arg ]"
     rm "$volume"
   fi
 
@@ -51,53 +53,39 @@ adjust() {
 
 # use variable $level to create an OSD for the current volume level
 do_dzen() {
+  local pipe='/tmp/volpipe' s=1
+
   # make a fifo from which dzen will read, this prevents mutliple dzens
   # from being spawned given repeated volume commands
   if [[ ! -e "$pipe" ]]; then
     mkfifo "$pipe"
-    (dzen2 -tw $W -h $H -x $X -y $Y -fn "$font" -bg $BG -fg $FG < "$pipe"; rm -f "$pipe") &
+    (dzen2 "${dzen_args[@]}" < "$pipe"; rm -f "$pipe") &
   fi
 
   # send the text to the fifo (and eventually to dzen)
-  (echo ${level/.*/} 25 | gdbar -fg $bar_FG -bg $bar_BG -h $bar_H -w $bar_W; sleep $s) >> "$pipe"
+  (echo ${level/.*/} 25 | gdbar "${gdbar_args[@]}"; sleep $s) >> "$pipe"
 }
 
-# dzen constants
-pipe='/tmp/volpipe'
-s=1
+dzen_args=(
+  -tw 1920 -h 20 -y -20
+  -bg '#101010'
+)
 
-font='Verdana-8'
+gdbar_args=(
+  -w 400 -h 7
+  -fg '#606060' 
+  -bg '#404040'
+)
 
-FG='#606060'
-BG='#303030'
-
-X=750
-Y=515
-H=50
-W=400
-
-# gdbar settings
-bar_FG='#909090'
-bar_BG='#606060'
-
-bar_H=10
-bar_W=300
-
-# oss constants
 volume="$HOME/.volume"
 channel='vmix0-outvol'
 
-# run it
-case "$1" in
-  -i|--increase) adjust "+$2" ;;
-  -d|--decrease) adjust "-$2" ;;
+case "${1:--i}" in
+  -i|--increase) adjust "+${2:-3}" ;;
+  -d|--decrease) adjust "-${2:-3}" ;;
   -t|--toggle)   toggle       ;;
   *)             message      ;;
 esac
 
-# do dzen if in X
-if [[ -n "$DISPLAY" ]]; then
-  do_dzen
-else
-  echo "$channel set to $level"
-fi
+# do dzen only if in X
+[[ -n "$DISPLAY" ]] && do_dzen || echo "$channel set to $level"
