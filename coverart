@@ -11,32 +11,23 @@
 
 # strip out (Crap) / Disc X / Volume Y
 clean_string() {
-  local string="$1" sedscript
-
-  sedscript='
+  sed -r '
   s/(.*) +\([^\)]*\)/\1/g;
   s/(.*) +\(.*/\1/g;
   s/(.*) +\[?[Dd]is[ck].*/\1/g;
   s/(.*) +\[?[Vv]olume.*/\1/g;
-  '
-
-  echo $string | sed -r "$sedscript"
+  ' <<< "$*"
 }
 
 # make a sane, tag-based filename so other apps can find cover images if 
 # they know the track's tags
 fix_filename() {
-  local artist="$1" album="$2" sedscript
-
-  sedscript='
+  sed -r '
   s/.*/\L&/g;
   s/ /_/g;
   s/[^a-z0-9_.-]//g;
-  '
-
-  read -r filename < <(echo "$artist $album" | sed -r "$sedscript")
-
-  echo $filename.jpg
+  s/$/.jpg/g;
+  ' <<< "$*"
 }
 
 fetch_cover() {
@@ -64,7 +55,7 @@ while read -r directory; do
     for file in "$directory"/*; do
       # read tags
       read -r artist < <(mpc list artist any "${file/$mdir\//}")
-      read -r album  < <(mpc list album any "${file/$mdir\//}")
+      read -r album  < <(mpc list album  any "${file/$mdir\//}")
       [[ -n "$artist$album" ]] && break
     done
 
@@ -77,7 +68,7 @@ while read -r directory; do
     for file in "$directory"/*; do
       # read tags
       read -r artist < <(mpc list artist any "${file/$mdir\//}")
-      read -r album  < <(mpc list album any "${file/$mdir\//}")
+      read -r album  < <(mpc list album  any "${file/$mdir\//}")
       [[ -n "$artist$album" ]] && break
     done
 
