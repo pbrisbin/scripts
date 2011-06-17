@@ -4,7 +4,7 @@
 #
 # fetch and organize albumart for your music collection
 #
-# images are both stored alongside the media as folder.jpg and copied 
+# images are stored both alongside the media as folder.jpg and copied 
 # into a central directory, each image named as artist_album.jpg.
 #
 ###
@@ -19,8 +19,7 @@ clean_string() {
   ' <<< "$*"
 }
 
-# make a sane, tag-based filename so other apps can find cover images if 
-# they know the track's tags
+# make a sane, tag-based filename
 fix_filename() {
   sed -r '
   s/.*/\L&/g;
@@ -31,15 +30,27 @@ fix_filename() {
 }
 
 fetch_cover() {
-  local artist="$1" album="$2" output="$3" cover_url
+  local artist="$1" album="$(clean_string "$2")" output="$3" cover_url
 
   # https://github.com/pbrisbin/albumart
-  read -r cover_url < <(albumart.php -a "$artist" -b "$album" 2>/dev/null);
+  read -r cover_url < <(albumart.php -a "$artist" -b "$album" 2>/dev/null)
+  [[ "$cover_url" =~ ^http:// ]] && wget -O "$output" "$cover_url"
+}
 
-  # cover url not found
-  [[ ! "$cover_url" =~ ^http:// ]] && return 1
+read_tags() {
+  local file="${1/$mdir\//}"
+  unset artist album
 
-  wget -O "$output" "$cover_url"
+  read -r artist < <(mpc list artist any "$file")
+  read -r album  < <(mpc list album  any "$file")
+
+  [[ -n "$artist$album" ]]
+}
+
+copy_albumart() {
+  local filename="$1" artist="$2" album="$3" ofilename
+  ofilename="$odir/$(fix_filename "$artist" "$album")"
+  [[ ! -f "$ofilename" ]] && cp -v "$filename" "$ofilename"
 }
 
 # constants
@@ -48,35 +59,20 @@ odir='/srv/http/static/covers'
 cover='folder.jpg'
 
 while read -r directory; do
+  unset artist album filename
+
   filename="$directory/$cover"
 
   if [[ -f "$filename" ]]; then
-    # cover has already been placed at folder.jpg
-    for file in "$directory"/*; do
-      # read tags
-      read -r artist < <(mpc list artist any "${file/$mdir\//}")
-      read -r album  < <(mpc list album  any "${file/$mdir\//}")
-      [[ -n "$artist$album" ]] && break
-    done
-
-    if [[ -n "$artist$album" ]]; then
-      # move to odir if needed
-      ofilename="$odir/$(fix_filename "$artist" "$album")"
-      [[ ! -f "$ofilename" ]] && cp -v "$filename" "$ofilename"
-    fi
+    for file in "$directory"/*; do read_tags "$file" && break; done
+    [[ -n "$artist$album" ]] && copy_albumart "$filename" "$artist" "$album"
   else
-    for file in "$directory"/*; do
-      # read tags
-      read -r artist < <(mpc list artist any "${file/$mdir\//}")
-      read -r album  < <(mpc list album  any "${file/$mdir\//}")
-      [[ -n "$artist$album" ]] && break
-    done
+    for file in "$directory"/*; do read_tags "$file" && break; done
 
-    # try and download to folder.jpg
-    if [[ -n "$artist$album" ]] && fetch_cover "$artist" "$(clean_string "$album")" "$filename"; then
-      # move to odir if needed
-      ofilename="$odir/$(fix_filename "$artist" "$album")"
-      [[ ! -f "$ofilename" ]] && cp -v "$filename" "$ofilename"
-    fi
+    [[ -n "$artist$album" ]] && \
+      fetch_cover "$artist" "$album" "$filename" && \
+      copy_albumart "$filename" "$artist" "$album"
   fi
-done < <(find "$mdir" -type f -exec dirname {} \; | sort -u)
+done < <(find "$mdir/" -type f -exec dirname {} \; | sort -u)
+
+exit 0
