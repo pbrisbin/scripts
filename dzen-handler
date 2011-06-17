@@ -14,16 +14,13 @@ handle_dzen() {
   # dzen settings
   local pipe='/tmp/android-receiver.fifo'
   local delay=10
-  local x_offset=0
-  local y_offset=0
-  local height=17
   local font='Verdana-8'
   local foreground='#ffffba'
   local background='#303030'
 
   if [[ ! -e "$pipe" ]]; then
     mkfifo "$pipe"
-    (dzen2 -ta l -h $height -x $x_offset -y $y_offset -fn "$font" -bg $background -fg $foreground < "$pipe"; rm -f "$pipe") &
+    (dzen2 -ta l -fn "$font" -bg $background -fg $foreground < "$pipe"; rm -f "$pipe") &
   fi
 
   (echo "$message"; sleep $delay) >> "$pipe"
