@@ -9,6 +9,8 @@
 #
 ###
 
+message() { echo 'usage: coverart <mdir> <odir>'; exit 1; }
+
 # strip out (Crap) / Disc X / Volume Y
 clean_string() {
   sed -r '
@@ -53,11 +55,15 @@ copy_albumart() {
   [[ ! -f "$ofilename" ]] && cp -v "$filename" "$ofilename"
 }
 
-# constants
-mdir="$HOME/Music"
-odir='/srv/http/static/covers'
-cover='folder.jpg'
+[[ "$#" -ne 2 ]] && message
 
+mdir="$1"
+odir="$2"
+
+[[ ! -d "$mdir" ]] && { echo "$mdir: not a directory" >&2; exit 1; }
+[[ ! -d "$odir" ]] && { echo "$odir: not a directory" >&2; exit 1; }
+
+cover='folder.jpg'
 while read -r directory; do
   unset artist album filename
 
@@ -74,5 +80,3 @@ while read -r directory; do
       copy_albumart "$filename" "$artist" "$album"
   fi
 done < <(find "$mdir/" -type f -exec dirname {} \; | sort -u)
-
-exit 0
