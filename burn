@@ -4,186 +4,74 @@
 #
 ###
 
-# utilities {{{
 message() { 
-  echo 'usage: burn [option] [file] [directory] ...'
-  echo
-  echo '  burn [arguments] to disc as a data cd/dvd'
-  echo
-  echo '  options'
-  echo
-  echo '        --dvd  burn to dvd-r (default)'
-  echo '        --cd   burn to cd-r'
-  echo
-  echo '        -a     burn files as an audio cd (assumes --cd)'
-  echo '        -i     just generate an iso image'
-  echo
-  echo '  burn *.iso will just burn the image to disc'
-  echo
-  echo '  pass - to read a list of files on stdin'
-  echo
+  cat << EOF
+  usage: burn [ -c ] [ -i ] <file> ...
+         burn [ -c ] <iso>
+
+    options:
+      -c, --cd          burn as cd-r
+      -i, --iso         just make an iso
+
+EOF
   exit 1
 }
 
-errorout() { echo "error: $*" >&2; exit 1; }
-# }}}
-
-# relative to absolute {{{
-rel2abs() {
-  local file dir
-
-  file="$(basename "$1")"
-  dir="$(dirname "$1")"
-
-  pushd "${dir:-./}" &>/dev/null || errorout 'unable to change directories'
-
-  echo "$PWD/$file"
-
-  popd &>/dev/null
-}
-# }}}
-
-# make an iso {{{
 make_iso() {
-  local files=( "$@" ) target file
-
-  [[ "${#files[@]}" -eq 0 ]] && errorout 'no args passed to make_iso()'
+  local file target img="$dir/image.iso"
 
   mkdir "$dir/to_burn"
 
-  echo 'linking files...'
-  for file in "${files[@]}"; do
-    target="$(rel2abs "$file")"
-
-    if [[ -e "$target" ]]; then
-      ln -s "$target" "$dir/to_burn/" || errorout 'ln -s failed.'
-    else
-      echo "$target not found, skipping..."
-    fi
+  for file; do
+    read -r target < <(readlink -f "$file")
+    [[ -e "$target" ]] && ln -s "$target" "$dir/to_burn/"
   done
 
-  # generate it
-  echo 'building iso...'
-  mkisofs -o "$iso" -f -r -J -l -allow-leading-dots "$dir/to_burn/" 2>/dev/null || errorout 'mkisofs failed.'
-}
-# }}}
+  mkisofs -o "$img" -f -r -J -l -allow-leading-dots "$dir/to_burn/" || exit $?
 
-# burn iso {{{
-burn_iso() {
-  local iso="$1"
-
-  [[ -e "$iso" ]] || errorout 'iso does not exist'
-
-  type="${type:-DVD}"
-
-  echo 'burning iso...'
-  case "$type" in
-    CD)  cdrecord -v speed=48 dev=$dev "$iso" 2>/dev/null ;;
-    DVD) growisofs -dvd-compat -Z $dev="$iso" 2>/dev/null ;;
-  esac
+  $iso && { cp -v "$img" ./; exit $? }
   
-  # NOTE: if the disc hasn't settled the above burn commands will just
-  # quit -- try again and just be a little more patient this time, ok?
-  ret=$?
-
-  # wait, eject (often fails), and exit
-  sleep 5 && eject "$dev"
-  exit $ret
+  burn_iso "$img"
 }
-# }}}
 
-# burn a cda {{{
-burn_cda() {
-  local files=() file dest
+burn_iso() {
+  local img="$1"
 
-  # check input
-  [[ $# -eq 0 ]] && errorout 'no args passed to burn_cda()'
+  [[ ! -e "$img" ]] && exit 1
 
-  # deal with file/dirs
-  for file in "$@"; do
-    if [[ -d "$file" ]]; then
-      files+=( $(find "$file" -type f) )
-    elif [[ -e "$file" ]]; then
-      files+=( "$file" )
-    else
-      echo "$file not found, skipping"
-    fi
-  done
-
-  [[ ${#files[@]} -eq 0 ]] && errorout 'no files found'
-
-  file=''
-
-  # generate WAVs only if needed
-  for ((i=0; i<${#files[@]}; i++)); do
-    file="${files[i]}"
-    dest="$dir/$((i+1)).wav"
-
-    if [[ "$file" =~ .wav$ ]]; then
-      ln -s "$file" "$dest" || errorout 'ln -s failed.'
-    else
-      echo "converting $file..."
-      mplayer -vo null -vc null -af lavcresample=44100,channels=2,format=s16le -ao pcm:file="$dest" "$file" 2>/dev/null || errorout 'mplayer failed.'
-    fi
-  done
-
-  type="${type:-CD}"
-
-  # burn it
-  echo 'burning CDA...'
-  case "$type" in
-    CD) cdrecord dev=$dev fs=4096k -v -useinfo speed=48 -dao -eject -pad -audio "$dir"/*.wav 2>/dev/null ;;
-    *)  errorout 'cannot burn CDA to non-CD type disc'                                                   ;;
-  esac
-
-  exit $?
-}
-# }}}
-
-# parse options {{{
-parse_options() {
-  if [ $# -eq 1 ] && [[ "$1" =~ .iso$ ]]; then
-    burn_iso "$1"
+  if $ascd; then
+    cdrecord -v speed=48 dev=$dev "$iso" || exit $?
+  else
+    growisofs -dvd-compat -Z $dev="$iso" || exit $?
   fi
-
-  # defaults
-  mode='DAT'
-
-  while [ -n "$1" ]; do
-    case "$1" in
-      --cd)  type='CD'                   ;;
-      --dvd) type='DVD'                  ;;
-      -a)    mode='CDA'                  ;;
-      -i)    mode='ISO'                  ;;
-      -h)    message                     ;;
-      -)     args+=( $(cat /dev/stdin) ) ;;
-      *)     args+=( "$1" )              ;;
-    esac
-    shift
-  done
 }
-# }}}
 
-# main {{{
-main() {
-  rm -rf "$dir"; mkdir "$dir"
+ascd=false
+iso=false
 
-  if [[ "${#args[@]}" -eq 1 ]] && [[ "${args[0]}" =~ .iso$ ]]; then
-    burn_iso "${args[0]}"
-  fi
-
-  case "$mode" in
-    CDA) burn_cda "${args[@]}"                  ;;
-    ISO) make_iso "${args[@]}"; cp -v "$iso" ./ ;;
-    DAT) make_iso "${args[@]}"; burn_iso "$iso" ;;
-    *)   errorout 'invalid mode'                ;;
-  esac
-}
-# }}}
-
-dev='/dev/sr0'
 dir='/tmp/burn'
-iso="$dir/image.iso"
+dev='/dev/sr0'
 
-parse_options "$@"
-main
+args=()
+
+while [[ -n "$1" ]]; do
+  case "$1" in
+    -c|--cd)   ascd=true      ;;
+    -i|--iso)  iso=true       ;;
+    -h|--help) message        ;;
+    *)         args+=( "$1" ) ;;
+  esac
+  shift
+done
+
+[[ -d "$dir" ]] && rm -r "$dir"; mkdir "$dir"
+
+# if only one arg and it's *.iso, burn it and exit
+[[ "${#args[@]}" -eq 1 ]]        \
+  && [[ "${args[0]}" =~ .iso$ ]] \
+  && { burn_iso "${args[0]}"; exit $? }
+
+# else, make the iso from the arguments; possibly burn it
+make_iso "${args[@]}"
+
+rm -r "$dir"
