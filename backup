@@ -40,7 +40,7 @@ if [[ "$1" = '--media' ]]; then
   # do a media backup and exit
   check_lock "$media_backup"
   echo "syncing media to $media_backup/... "
-  rsync -a -l --delete "$@" "${media_includes[@]}" "$media_backup/"
+  rsync -a --delete "$@" "${media_includes[@]}" "$media_backup/"
   exit $?
 fi
 
@@ -59,7 +59,7 @@ backup_dir="${backup_dir:-$backup_daily}"
 check_lock "$backup_dir"
 
 echo "syncing directories to $backup_dir/... "
-rsync -a -l --delete --delete-excluded "$@" "${includes[@]}" ${excludes[@]/#/--exclude } "$backup_dir/"
+rsync -a --delete --delete-excluded "$@" "${includes[@]}" ${excludes[@]/#/--exclude } "$backup_dir/"
 
 echo 'generating package lists... '
 pacman -Qqe | grep -Fvx "$(pacman -Qqm)" > "$backup_dir/paclog" || errorout 'failed creating paclisting'
