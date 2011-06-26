@@ -167,6 +167,3 @@ fi
 
 prompt "remove $orig" && rm -r "$orig"
 prompt 'update mpd db' && mpc --wait update
-
-# http://github.com/pbrisbin/scripts/blob/master/coverart
-prompt 'update covers' && coverart
