@@ -80,3 +80,5 @@ while read -r directory; do
       copy_albumart "$filename" "$artist" "$album"
   fi
 done < <(find "$mdir/" -type f -exec dirname {} \; | sort -u)
+
+exit 0
