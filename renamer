@@ -1,17 +1,14 @@
 #!/bin/bash
 #
-# pbrisbin 2009
+# pbrisbin 2011
 #
-# take a retardedly named file or directory and rename it sanely
-#
-# adjust translate() as needed
+# fix terrible filenames
 #
 ###
 
-message() { echo 'usage: renamer (--fake) <target> ...'; exit 1; }
+message() { echo 'usage: renamer [ --fake ] <target> ...'; exit 1; }
 
-# could always use more shit here...
-translate() {
+fix() {
   tr -d '\n' | tr -d '\t' | tr -d \' | tr -d \" |\
     sed -r -e 's/.*/\L&/g' \
            -e 's/[ -]/_/g' \
@@ -19,47 +16,32 @@ translate() {
            -e 's/^_|_$//g'
 }
 
-rfile() {
-  local dir old new
-
-  dir="$(dirname "$1")"
-  old="$(basename "$1")"
-  new="$(echo $old | translate)"
+fix_sub() {
+  local dir="${1%/*}" old="${1##*/}" new
+  read -r new < <(fix <<< "$old")
 
   if [[ "$old" != "$new" ]]; then
-    if $fake; then
-      echo "$dir/$old --> $dir/$new"
-    else
-      mv -iv "$dir/$old" "$dir/$new"
-    fi
+    echo "$dir/$old --> $dir/$new"
+    $fake || mv -i "$dir/$old" "$dir/$new"
   fi
 }
 
-rdir() {
+fix_dir() {
   local dir
 
   while IFS='' read -d '' -r dir; do
-    rfile "$dir"
+    fix_sub "$dir"
   done < <(find "$1" -depth -print0)
 }
 
 [[ -z "$*" ]] && message
 
-# allow a pretend run
-if [[ "$1" = '--fake' ]]; then
-  fake=true
-  shift
-else
-  fake=false
-fi
+fake=false
+[[ "$1" = '--fake' ]] && { fake=true; shift; }
 
-# do it to it
-for arg in "$@"; do 
-  if [[ -d "$arg" ]]; then
-    rdir "$arg"
-  elif [[ -e "$arg" ]]; then
-    rfile "$arg"
-  else
-    message
-  fi
+for arg; do
+  [[ -d "$arg" ]] && { fix_dir "$arg"; continue; }
+  [[ -e "$arg" ]] && { fix_sub "$arg"; continue; }
+
+  message
 done
