@@ -1,0 +1,27 @@
+#!/bin/bash
+#
+# pbrisbin 2011
+#
+# keep a catalogue my media collection.
+#
+###
+
+message() { echo 'usage: trackmedia [ --rips ] [ --movies ] [ --music ]'; exit 1; }
+
+which tree &>/dev/null || { echo 'pacman -S tree...' >&2; exit 1; }
+
+[[ -z "$1" ]] && { # print all
+  tree              ~/Rips/  ; echo
+  tree -I converted ~/Movies/; echo
+  tree -d           ~/Music/ ; echo
+}
+
+while [[ -n "$1" ]]; do
+  case "$1" in
+    --rips)   tree              ~/Rips   ; echo ;;
+    --movies) tree -I converted ~/Movies/; echo ;;
+    --music)  tree -d           ~/Music  ; echo ;;
+    *)        message                           ;;
+  esac
+  shift
+done
