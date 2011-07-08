@@ -7,24 +7,26 @@
 ###
 
 # required constants:
-WHO="Mitch Headberg"
+WHO='Mitch Hedberg'
 file="$HOME/.mitch_quotes" # $file has blocks of text separated by...
 mark='MARK'                # $mark on a line by itself
 
 # abstracted code:
 print_block() {
-  local top=${marks[$1]}   # the line num of the passed mark
+  local top=${marks[$1]}    # the line num of the passed mark
   local bot=${marks[$1+$2]} # the line num of the next mark
-  local H=$((bot-1))       # the arg for head -n to print up until the next mark (exclusive)
-  local T=$((bot-top-1))   # the arg for tail -n to print down from the passed mark (exclusive)
+  local H=$((bot-1))        # the arg for head -n to print up until the next mark (exclusive)
+  local T=$((bot-top-1))    # the arg for tail -n to print down from the passed mark (exclusive)
 
   # and you're left with the text in between...
 
-  echo
-  echo -n "  "; head -n $H $file | tail -n $T
-  echo
-  echo "                                   -- $WHO"
-  echo
+  cat << EOF
+
+  $(head -n $H $file | tail -n $T)
+
+                                -- $WHO
+
+EOF
 }
 
 # construct an array of line numbers, one for each $mark in $file
