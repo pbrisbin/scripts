@@ -1,0 +1,26 @@
+#!/bin/bash -e
+#
+# pbrisbin 2011
+#
+# copy a postgres database to a timestamped duplicated effectively
+# backing it up. <database> will be copied and <owner> will own the
+# backup.
+#
+# commands are executed as postgres via sudo
+#
+###
+
+message() { echo 'dbbackup <database> <owner>'; exit 1; }
+
+[[ $# -ne 2 ]] && message
+
+db="$1"
+owner="$2"
+
+backup="${db}_$(date +%Y%m%d%M%S)"
+
+echo "creating databse $backup..."
+sudo -u postgres psql <<< "CREATE DATABASE $backup OWNER $owner;"
+
+echo "dumping $db into $backup..."
+sudo -u postgres pg_dump "$db" | sudo -u postgres psql "$backup"
