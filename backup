@@ -28,7 +28,7 @@ check_lock() {
 backup_daily='/mnt/backup/daily'
 backup_monthly='/mnt/backup/monthly'
 includes=( /srv/http /home/patrick /etc /usr /var /boot )
-excludes=( Downloads lost+found )
+excludes=( Documents/ripping Downloads lost+found )
 
 # my large media collection is handled specially
 media_backup='/mnt/backup2'
