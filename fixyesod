@@ -18,7 +18,8 @@ for pkg in "${broken_pkgs[@]}"; do
 done
 
 for pkg in "${broken_pkgs[@]}"; do
-  src="$code/$pkg"
+  pkg="${pkg%-*}" # trim version
+  src="$code/${pkg}"
 
   if [[ -d "$src" ]]; then
     echo "re-installing $pkg from local sources..."
