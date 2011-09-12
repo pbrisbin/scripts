@@ -1,0 +1,33 @@
+#!/bin/bash -e
+#
+# constantly reinstalling core packages during yesod-development breaks
+# any dependant packages.
+#
+# this script just finds them via ghc-pkg check, unregisters them and
+# reinstalls those that are available locally or via hackage.
+#
+###
+
+code="$HOME/Code/haskell"
+
+read -a broken_pkgs < <(ghc-pkg check |& grep '^[a-z]*-')
+
+for pkg in "${broken_pkgs[@]}"; do
+  echo "unregistering $pkg..."
+  ghc-pkg unregister $pkg
+done
+
+for pkg in "${broken_pkgs[@]}"; do
+  src="$code/$pkg"
+
+  if [[ -d "$src" ]]; then
+    echo "re-installing $pkg from local sources..."
+    (
+      cd "$src"
+      cabal install
+    )
+  else
+    echo "re-installing $pkg from hackage..."
+    cabal install $pkg
+  fi
+done
