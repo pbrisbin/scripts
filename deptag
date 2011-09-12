@@ -10,7 +10,7 @@
 
 prefix='deployment' # no spaces
 
-read -r version < <(git tag | sort -rn | sed '/^'"$prefix"'-\([0-9]\+\)/!d;s//\1/g')
+read -r version < <(git tag | sort -rV | sed '/^'"$prefix"'-\([0-9]\+\)/!d;s//\1/g')
 
 version=$(( ${version:-0} + 1 ))
 
