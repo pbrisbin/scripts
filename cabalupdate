@@ -29,16 +29,24 @@ reinstall_cabal_packages() {
   # xmonad
   cabal install xmonad xmonad-contrib
 
-  # yesod
-  cabal install yesod                 \
-                yesod-newsfeed        \
-                persistent-sqlite     \
-                wai-handler-fastcgi   \
-                -fhighlighting pandoc \
+  # other cabal packages
+  cabal install -fhighlighting pandoc \
                 libmpd                \
                 hlint                 \
                 yeganesh              \
                 haddock
+
+  # yesod development
+  for repo in hamlet persistent wai yesod; do
+    (
+      cd ~/Code/haskell/$repo
+      git pull
+      ./install-all.sh
+    )
+  done
+
+  # fix/get yesod-dependant packages
+  fixyesod
 }
 
 [[ "$1" =~ -h|--help ]] && message
