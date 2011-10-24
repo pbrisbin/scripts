@@ -1,66 +1,116 @@
-#!/bin/bash
+#!/bin/bash -e
 #
-# pbrisbin 2010
+# pbrisbin 2011
 #
-# rewritten based on ideas from falconindy's SquashFu:
+# takes ideas from falconindy's SquashFu:
 #       http://github.com/falconindy/SquashFu
 #
 ###
 
-errorout() { echo "error: $*" >&2; exit 1; }
-message()  { echo 'usage: backup [ -d | -m | --media ] [ rsync options ]'; exit 1; }
-
-check_lock() {
-  local drive="$1"
-
-  [[ -f "$drive/.lock" ]] && return 0
-
-  # if we get here we fail
-  errorout "$drive/.lock not found. is it mounted?"
+check_root() { # {{{
+  if [[ $(id -u) -ne 0 ]]; then
+    echo 'you must be root' >&2
+    exit 1
+  fi
 }
+# }}}
 
-[[ "$1" =~ -h|--help ]] && message
+check_lock() { # {{{
+  if [[ ! -f "$DIR/.lock" ]]; then
+    echo "${DIR:-unknown}/.lock not found" >&2
+    exit 2
+  fi
+}
+# }}}
 
-# must be root
-[[ $(id -u) -eq 0 ]] || errorout 'only root can do that.'
+check_exec() { # {{{
+  if ! type -p "${EXEC%% *}"; then
+    echo "Function undefined for backup type" >&2
+    exit 3
+  fi
+}
+# }}}
 
-# normal backup settings
-backup_daily='/mnt/backup/daily'
-backup_monthly='/mnt/backup/monthly'
-includes=( /srv/http /home/patrick /etc /usr /var /boot )
-excludes=( Documents/ripping Downloads lost+found )
+rsynccmd() { # {{{
+  rsync -a --delete --delete-excluded \
+    "$@" "${INCLUDES[@]}" ${EXCLUDES[@]/#/--exclude } "$DIR/"
+}
+# }}}
 
-# my large media collection is handled specially
-media_backup='/mnt/backup2'
+rsync_and_pkg_list() { # {{{
+  rsynccmd "$@"
+  pacman -Qqe | grep -Fvx "$(pacman -Qqm)" > "$DIR/paclog"
+  pacman -Qqm > "$DIR/aurlog"
+}
+# }}}
+
+rsync_and_pkg_list_remote() { # {{{
+  local host="$1"; shift
+
+  if ping -c 1 $host &>/dev/null; then 
+    rsynccmd -e ssh "$@"
+    ssh root@$host 'pacman -Qqe | grep -Fxv "$(pacman -Qqm)"' > "$DIR/paclog"
+    ssh root@$host 'pacman -Qqm' > "$DIR/aurlog"
+  fi
+}
+# }}}
+
+setup_backup_for() { # {{{
+  local name="$1" var
+
+  DIR=
+  EXEC=
+
+  # the directory to backup to
+  var="${name}_destination"
+  DIR="${!var}"
+
+  # an array of files/directories to include
+  var="${name}_includes[@]"
+  INCLUDES=( "${!var}" )
+
+  # an array of files/directories to exclude
+  var="${name}_excludes[@]"
+  EXCLUDES=( "${!var}" )
+
+  # the function to call the execute the actual backup after checking
+  # that the destination is available. the function is passed any
+  # additional command lines args directly
+  var="${name}_execute"
+  EXEC="${!var}"
+
+  check_root
+  check_lock
+  check_exec
+}
+# }}}
+
+# A normal, file and pkg list backup
+daily_destination='/mnt/backup/daily'
+daily_includes=( /srv/http /home/patrick /etc /usr /var /boot )
+daily_excludes=( Documents/ripping Downloads lost+found )
+daily_execute=rsync_and_pkg_list
+
+# The same except to a different destination
+monthly_destination='/mnt/backup/monthly'
+monthly_includes=( "${daily_includes[@]}" )
+monthly_excludes=( "${daily_excludes[@]}" )
+monthly_execute="$daily_execute"
+
+# Media just needs rsync so it can use it directly
+media_destination='/mnt/backup2'
 media_includes=( /mnt/media/Music /mnt/media/Rips /mnt/media/Movies /mnt/media/TV_shows )
+media_excludes=()
+media_execute=rsynccmd
 
-if [[ "$1" = '--media' ]]; then
-  shift
+# An example of backup-over-ssh
+htpc_destination='/mnt/backup/htpc/'
+htpc_includes=( root@htpc:/etc root@htpc:/home/xbmc )
+htpc_excludes=()
+htpc_execute='rsync_and_pkg_list_remote htpc'
 
-  # do a media backup and exit
-  check_lock "$media_backup"
-  echo "syncing media to $media_backup/... "
-  rsync -a --delete "$@" "${media_includes[@]}" "$media_backup/"
-  exit $?
-fi
+declare -a INCLUDES
+declare -a EXCLUDES
 
-case "$1" in
-  -d|--daily)   backup_dir="$backup_daily"   ;;
-  -m|--monthly) backup_dir="$backup_monthly" ;;
-  *)            message                      ;;
-esac
-
-shift
-
-# default
-backup_dir="${backup_dir:-$backup_daily}"
-
-# is mounted
-check_lock "$backup_dir"
-
-echo "syncing directories to $backup_dir/... "
-rsync -a --delete --delete-excluded "$@" "${includes[@]}" ${excludes[@]/#/--exclude } "$backup_dir/"
-
-echo 'generating package lists... '
-pacman -Qqe | grep -Fvx "$(pacman -Qqm)" > "$backup_dir/paclog" || errorout 'failed creating paclisting'
-pacman -Qqm > "$backup_dir/aurlog"                              || errorout 'failed creating aur listing'
+setup_backup_for "$1"
+shift; $EXEC "$@"
