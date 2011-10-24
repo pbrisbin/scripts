@@ -20,6 +20,7 @@ EOF
 
 remove_cabal_packages() {
   rm -r "$HOME/.cabal/packages"/*/*
+  rm -r "$HOME/.cabal/bin"/*
   rm -r "$HOME/.ghc"
 }
 
@@ -31,22 +32,9 @@ reinstall_cabal_packages() {
 
   # other cabal packages
   cabal install -fhighlighting pandoc \
-                libmpd                \
-                hlint                 \
-                yeganesh              \
-                haddock
-
-  # yesod development
-  for repo in hamlet persistent wai yesod; do
-    (
-      cd ~/Code/haskell/$repo
-      git pull
-      ./install-all.sh
-    )
-  done
-
-  # fix/get yesod-dependant packages
-  fixyesod
+                yeganesh-2.2.1        \
+                haddock-2.9.2         \
+                hlint
 }
 
 [[ "$1" =~ -h|--help ]] && message
