@@ -29,7 +29,7 @@ make_iso() {
 
   mkisofs -o "$img" -f -r -J -l -allow-leading-dots "$dir/to_burn/" || exit $?
 
-  $iso && { cp -v "$img" ./; exit $? }
+  $iso && { cp -v "$img" ./; exit $?; }
   
   burn_iso "$img"
 }
@@ -40,9 +40,9 @@ burn_iso() {
   [[ ! -e "$img" ]] && exit 1
 
   if $ascd; then
-    cdrecord -v speed=48 dev=$dev "$iso" || exit $?
+    cdrecord -v speed=48 dev=$dev "$img" || exit $?
   else
-    growisofs -dvd-compat -Z $dev="$iso" || exit $?
+    growisofs -dvd-compat -Z $dev="$img" || exit $?
   fi
 }
 
@@ -69,7 +69,7 @@ done
 # if only one arg and it's *.iso, burn it and exit
 [[ "${#args[@]}" -eq 1 ]]        \
   && [[ "${args[0]}" =~ .iso$ ]] \
-  && { burn_iso "${args[0]}"; exit $? }
+  && { burn_iso "${args[0]}"; exit $?; }
 
 # else, make the iso from the arguments; possibly burn it
 make_iso "${args[@]}"
