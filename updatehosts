@@ -77,14 +77,15 @@ temp='/tmp/hosts'
 
 # array of 'host::ip'; will be added at top of file (after localhost)
 lanips=( 
-  'blue::192.168.0.5'
   'router::192.168.0.1'
+  'blue::192.168.0.5'
   'xbox::192.168.0.6'
   'howard::192.168.0.7'
   'susan::192.168.0.8'
   'htpc::192.168.0.9'
-  'bruno::192.168.0.19'
-  )
+  'pixma::192.168.0.15'
+  'work::192.168.0.16'
+)
 
 $verbose && logger "backing up $hosts..."
 cp "$hosts" "$hosts.bak" || errorout 'failed backing up current hosts file'
