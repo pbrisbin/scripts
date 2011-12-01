@@ -29,4 +29,6 @@ touch "$ipfile"
 read -r old < "$ipfile"
 read -r new < <(wget -q -O - 'http://tnx.nl/ip')
 
-[[ "$old" != "$new" ]] && update_dns || exit 0
+if [[ "$1" == '--force' ]] || [[ "$old" != "$new" ]]; then
+  update_dns
+fi
