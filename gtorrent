@@ -1,7 +1,0 @@
-#!/bin/bash
-#
-# just a wrapper for an alternate rtorrent in screen
-#
-###
-
-rtorrent -n -o import=~/.gbs-rtorrent.rc
