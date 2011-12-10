@@ -1,41 +1,23 @@
 #!/bin/bash
 #
-# pbrisbin 2009, 2010
+# pbrisbin 2011
 #
-# just moves a rules file about to change udev behavior regarding the
-# automounting of usb devices. 
-#
-# see http://wiki.archlinux.org/index.php/Udev for details.
+# http://wiki.archlinux.org/index.php/Udev
 #
 ###
 
-USECOLOR='YES'
+message() { echo 'usage: automount [ on | off ]' >&2; exit 1; }
 
-# get those fun BUSY/DONE messages
-. /etc/rc.d/functions
-
-# if this file's present, automounting is 'on'
-file='/etc/udev/rules.d/11-media-by-label-auto-mount.rules'
-
-message() { echo 'usage: automount [ start | stop | restart ]'; exit 1; }
-
-# find the number of in-use drives and get the next available letter
-get_next_letter() {
-  local alph n
-  
-  alph=( $(echo {a..z}) )
-  n=$(ls /dev/sd? 2>/dev/null | wc -l)
-
-  echo "${alph[n]}"
-}
-
-# mount as /media/<label> or fall back on usbhd-sdxy
 write_file() {
-  local a="$(get_next_letter)"
+  local alph nxt a
+
+  read -r -a alph < <(echo {a..z})
+  read -r    nxt  < <(ls /dev/sd? 2>/dev/null | wc -l)
+
+  a="${alph[nxt]}"
 
   [[ -z "$a" ]] && return 1
 
-  # 7/10/2010 + rule updated
   cat > "$file" << EOF
 KERNEL!="sd[$a-z][0-9]", GOTO="media_by_label_auto_mount_end"
 
@@ -60,32 +42,12 @@ ACTION=="remove", ENV{dir_name}!="", RUN+="/bin/umount -l /media/%E{dir_name}", 
 # Exit
 LABEL="media_by_label_auto_mount_end"
 EOF
-
 }
 
-# write out the file to enable automounting
-turn_on() { 
-  stat_busy 'Turning on automount'
-  [[ -f "$file" ]] || write_file && stat_done || stat_fail
-}
-
-# remove the file to disable automounting
-turn_off() { 
-  stat_busy 'Turning off automount'
-  [[ -f "$file" ]] && rm "$file" && stat_done || stat_fail
-}
-
-check_state() { [[ -f "$file" ]] && echo 'on' || echo 'off'; exit 0; }
-
-# no args will just print current state
-[[ -z "$1" ]] && check_state
-
-# must be root to change things
-[[ $(id -u) -ne 0 ]] && exit 1
+file='/etc/udev/rules.d/11-media-by-label-auto-mount.rules'
 
 case "$1" in
-  start)   turn_on           ;;
-  stop)    turn_off          ;;
-  restart) turn_off; turn_on ;;
-  *)       message           ;;
+  on)  write_file    ;;
+  off) rm -f "$file" ;;
+  *)   message       ;;
 esac
