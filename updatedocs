@@ -1,20 +1,18 @@
-#!/bin/bash
+#!/bin/bash -ex
 
 cd ~/.xmonad || exit 1
 
-# create colored html source for xmonad.hs
 HsColour -css -anchor xmonad.hs > docs/src/xmonad.html
 
-# create colored html source for lib
 for file in lib/*.hs; do
   HsColour -css -anchor "$file" > docs/src/$(basename "$file" .hs).html
 done
 
-# update documentation
 haddock --no-warnings --html --title="pbrisbin modules" --odir=docs lib/*.hs \
   --source-module="src/%{MODULE/.//}.html" \
   --source-entity="src/%{MODULE/.//}.html#%{NAME}"
 
-# publish to server
-rm -r /srv/http/xmonad/docs/*
-cp -r ./docs/* /srv/http/xmonad/docs/
+public="$HOME/Code/haskell/devsite/static/docs/haskell/xmonad-config"
+
+rm -r "$public"/*
+cp -r ./docs/* "$public"/
