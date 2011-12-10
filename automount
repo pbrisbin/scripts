@@ -9,17 +9,14 @@
 message() { echo 'usage: automount [ on | off ]' >&2; exit 1; }
 
 write_file() {
-  local alph nxt a
+  local   alph=({a..z})
+  local in_use=(/dev/sd?)
+  local    nxt="${alph[${#in_use[*]}]}"
 
-  read -r -a alph < <(echo {a..z})
-  read -r    nxt  < <(ls /dev/sd? 2>/dev/null | wc -l)
-
-  a="${alph[nxt]}"
-
-  [[ -z "$a" ]] && return 1
+  [[ -z "$nxt" ]] && return 1
 
   cat > "$file" << EOF
-KERNEL!="sd[$a-z][0-9]", GOTO="media_by_label_auto_mount_end"
+KERNEL!="sd[$nxt-z][0-9]", GOTO="media_by_label_auto_mount_end"
 
 # Import FS infos
 IMPORT{program}="/sbin/blkid -o udev -p %N"
