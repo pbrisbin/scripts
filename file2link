@@ -9,7 +9,7 @@ message() { echo 'usage: file2link <file>'; exit 1; }
 [[ ! -e "$1" ]] && message
 
 srv_lnk='http://pbrisbin.com'
-srv_dir='/srv/http'
+srv_dir='/home/patrick/Code/haskell/devsite'
 
 file="$(readlink -f "$1")"
 link="${file/$srv_dir/$srv_lnk}"
