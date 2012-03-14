@@ -6,16 +6,105 @@
 #
 ###
 
+# from makepkg
+
+#----------------------------------------
+
+# Options
+ASROOT=0
+
+#----------------------------------------
+
+# set pacman command if not already defined
+PACMAN=${PACMAN:-pacman}
+
+#----------------------------------------
+
+PACMAN_OPTS=
+
+#----------------------------------------
+
+run_pacman() {
+        local cmd
+        if [[ ! $1 = -@(T|Qq) ]]; then
+                printf -v cmd "%q " "$PACMAN" $PACMAN_OPTS "$@"
+        else
+                printf -v cmd "%q " "$PACMAN" "$@"
+        fi
+        if (( ! ASROOT )) && [[ ! $1 = -@(T|Qq) ]]; then
+                if type -p sudo >/dev/null; then
+                        cmd="sudo $cmd"
+                else
+                        cmd="su root -c '$cmd'"
+                fi
+        fi
+        eval "$cmd"
+}
+
+#----------------------------------------
+
+warning() {
+        local mesg=$1; shift
+        printf "${YELLOW}==> $(gettext "WARNING:")${ALL_OFF}${BOLD} ${mesg}${ALL_OFF}\n" "$@" >&2
+}
+
+error() {
+        local mesg=$1; shift
+        printf "${RED}==> $(gettext "ERROR:")${ALL_OFF}${BOLD} ${mesg}${ALL_OFF}\n" "$@" >&2
+}
+
+#========================================
+
+# from makepkg - modified
+
+check_software() {
+        # check for sudo if we will need it during makepkg execution
+        if (( ! ASROOT )); then
+                if ! type -p sudo >/dev/null; then
+                        warning "$(gettext "Sudo can not be found. Will use su to acquire root privileges.")"
+                fi
+        fi
+}
+
+#----------------------------------------
+
+# check if messages are to be printed using color
+unset ALL_OFF BOLD BLUE GREEN RED YELLOW
+#if [[ -t 2 && ! $USE_COLOR = "n" && $(check_buildenv color) = "y" ]]; then
+        # prefer terminal safe colored and bold text when tput is supported
+        if tput setaf 0 &>/dev/null; then
+                ALL_OFF="$(tput sgr0)"
+                BOLD="$(tput bold)"
+                BLUE="${BOLD}$(tput setaf 4)"
+                GREEN="${BOLD}$(tput setaf 2)"
+                RED="${BOLD}$(tput setaf 1)"
+                YELLOW="${BOLD}$(tput setaf 3)"
+        else
+                ALL_OFF="\e[1;0m"
+                BOLD="\e[1;1m"
+                BLUE="${BOLD}\e[1;34m"
+                GREEN="${BOLD}\e[1;32m"
+                RED="${BOLD}\e[1;31m"
+                YELLOW="${BOLD}\e[1;33m"
+        fi
+#fi
+readonly ALL_OFF BOLD BLUE GREEN RED YELLOW
+
+#========================================
+
+if (( EUID == 0 )); then
+        ASROOT=1
+fi
+
 # error message
-errorout() { echo "error: $*" >&2; exit 1; }
+errorout() { error " $*" >&2; exit 1; }
 
 # help message
 message() {
   cat << EOF
 
-  usage: downgrade [ -p <command> ] [ -d <dir> ] [ -m <32|64> ] [ -a ] [ -i ] [ -- ] <pkg> ...
+  usage: downgrade [ -d <dir> ] [ -m <32|64> ] [ -a ] [ -i ] [ -- ] <pkg> ...
     options:
-      -p,--pacman       set install command, default is \`sudo pacman -U'
       -d,--pkgdir       set download directory (A.R.M. only), default is \`~/Packages'
       -m,--arch         set search architecture (A.R.M. only), default is determined by \`uname -m\`
       -a,--noarm        don't search the A.R.M when nothing's available in cache
@@ -93,8 +182,8 @@ search_and_print_arm() {
   #url="http://arm.kh.nu/search/raw.php?a=$arch&q=^$term\$$repos"
   url="http://arm.konnichi.com/search/raw.php?a=$arch&q=^$term\$$repos"
 
-
-  arms=( $(wget -q -O - "$url" | sort -r) )
+  # TODO: download and use signatures
+  arms=( $(wget -q -O - "$url" | grep -v sig$ | sort -r) )
 
   if [[ ${#arms[@]} -ne 0 ]]; then
     echo -e "\n The following packages are available from the A.R.M.:"
@@ -140,7 +229,7 @@ parse_options() {
 
   while [[ -n "$1" ]]; do
     case "$1" in
-      -p|--pacman)      shift; pacman="$1"            ;;
+      -p|--pacman)      shift; PACMAN="$1"            ;;
       -d|--pkgdir)      shift; pkgdir="${1/\~/$HOME}" ;;
       -m|--arch)        shift; arch="$1"              ;;
       -a|--noarm)       searcharm=false               ;;
@@ -194,14 +283,14 @@ main() {
     fi
 
     # if here, $pkg is valid
-    $pacman "$pkg" || errorout "could not install package $pkg"
+    
+    run_pacman -U "$pkg" || errorout "could not install package $pkg"
 
   done
 }
 
 # set defaults
 pkgdir="$HOME/Packages"  # where to put packages
-pacman='sudo pacman -U'  # package installer
 searcharm=true           # search arm if not in cache
 showinstalled=true       # show [installed] next to installed versions
 
@@ -209,4 +298,5 @@ showinstalled=true       # show [installed] next to installed versions
 
 # go
 parse_options "$@"
+check_software
 main
