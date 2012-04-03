@@ -1,8 +1,0 @@
-#!/bin/bash
-# 
-# this is stupid
-#
-###
-
-np="$(mpc --format '%title% - %artist%' current)"
-echo ${np,,}
