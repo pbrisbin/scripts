@@ -1,0 +1,7 @@
+#!/bin/sh
+#
+# run a command in an interactive zsh session. this allows me to use
+# aliases/functions from non-interactive environments like vim or irssi.
+#
+###
+TERM=xterm /bin/zsh -i -c "$@"
