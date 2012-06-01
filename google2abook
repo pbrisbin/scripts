@@ -30,7 +30,7 @@ version=$(pacman -Q abook | cut -d ' ' -f 2 | cut -d '-' -f 1)
 EOF
 }
 
-# http://pbrisbin.com/static/fileshare/gcontacts.py
+# http://files.pbrisbin.com/gcontacts.py
 #write_entries() { gcontacts.py -m abook >> "$swap"; }
 write_entries() { $HOME/Code/bin/gcontacts.py -m abook >> "$swap"; }
 

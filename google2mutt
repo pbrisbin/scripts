@@ -18,7 +18,7 @@ get_current() { grep -v '^#\|^$' "$alias"; }
 get_google() {
   local IFS='|' email name
 
-  # http://pbrisbin.com/static/fileshare/gcontacts.py
+  # http://files.pbrisbin.com/gcontacts.py
   #gcontacts.py -m short |\
   $HOME/Code/bin/gcontacts.py -m short |\
   awk -F '\t' '{ if ($1 != "n/a" && $2 != "n/a") print $1 "|" $2 }' |\

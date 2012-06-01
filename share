@@ -23,7 +23,7 @@ if [[ $# -gt 1 ]]; then
 else
   [[ ! -e "$1" ]] && message
 
-  share="$HOME/Code/haskell/devsite/static/fileshare"
+  share="$HOME/Site/files"
 
   src="$1"
   dst="$share/$(basename "$src")"

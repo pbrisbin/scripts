@@ -12,7 +12,7 @@ haddock --no-warnings --html --title="pbrisbin modules" --odir=docs lib/*.hs \
   --source-module="src/%{MODULE/.//}.html" \
   --source-entity="src/%{MODULE/.//}.html#%{NAME}"
 
-public="$HOME/Code/haskell/devsite/static/docs/haskell/xmonad-config"
+public="$HOME/Site/docs/haskell/xmonad-config"
 
 rm -r "$public"/*
 cp -r ./docs/* "$public"/
