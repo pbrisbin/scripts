@@ -1,0 +1,31 @@
+#!/bin/bash
+
+mnt='/mnt/s3' 
+
+which fakes3 &>/dev/null || {
+  echo 'gem install fakes3' >&2
+  exit 1
+}
+
+[[ -d "$mnt" ]] || {
+  # assuming you're using /mnt...
+  sudo mkdir "$mnt"
+  sudo chown $USER:$USER "$mnt"
+}
+
+case $1 in
+  start)
+    fakes3 -r "$mnt" -p 4567 &>/dev/null </dev/null &
+    echo $! > /tmp/fakes3.pid
+    ;;
+
+  stop)
+    # -9 seems to be needed, sigh.
+    kill -9 $(cat /tmp/fakes3.pid)
+    ;;
+
+  *) 
+    echo 'error: invalid usage.' >&2
+    exit 1
+    ;;
+esac
