@@ -1,44 +1,30 @@
 #!/bin/bash
 
-logger() { echo "$(date +'[ %d %b %Y %H:%M ]') :: $*" | tee -a "$tmplog"; }
+(( $UID )) && errorout 'you must be root'
 
-errorout() {
-  ( if [[ -n "$tmplog" ]]; then
-      logger "error: $*"
-    else
-      echo "error: $*"
-    fi
+perform_check() {
+  cat << EOF
+Subject: Rootkit check performed
+Date: $(date -u +"%%a, %%d %%h %%Y %%T +0000")
+From: Rootkit Check <admin@pbrisbin.com>
+To: pbrisbin@gmail.com
 
-  ) >&2
+Rootkit check was performed today.
 
-  exit 1
+------------------------------------------------------------------------------------------
+EOF
+
+  /usr/bin/rkhunter --versioncheck --nocolors
+  /usr/bin/rkhunter --update --nocolors
+  /usr/bin/rkhunter --cronjob --nocolors --report-warnings-only
+
+  cat << EOF
+------------------------------------------------------------------------------------------
+
+Thanks,
+Admin
+
+EOF
 }
 
-send_to_log() {
-  while read -r; do
-    logger "$REPLY"
-  done
-}
-
-archive_log() { cat "$tmplog" >> "$log"; }
-
-mail_log() { su -c "echo see attached | mutt -s \"Root Kit Check\" -a \"$tmplog\" -- pbrisbin@gmail.com" patrick; }
-
-# must be root
-[ $(id -u) -ne 0 ] && errorout 'you must be root'
-
-# location of logs
-tmplog='/tmp/rootkit.log'
-log='/home/patrick/.logs/rootkitcheck.log'
-
-logger ' --- starting new check --- '
-/usr/bin/rkhunter --versioncheck --nocolors                   | send_to_log
-/usr/bin/rkhunter --update --nocolors                         | send_to_log
-/usr/bin/rkhunter --cronjob --nocolors --report-warnings-only | send_to_log
-
-if grep -Fq 'Please check the the log file' "$tmplog"; then
-  archive_log
-  mail_log
-fi
-
-rm "$tmplog"
+perform_check | /usr/sbin/sendmail -f 'admin@pbrisbin.com' pbrisbin@gmail.com
