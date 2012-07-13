@@ -5,7 +5,7 @@
 perform_check() {
   cat << EOF
 Subject: Rootkit check performed
-Date: $(date -u +"%%a, %%d %%h %%Y %%T +0000")
+Date: $(date -u +"%a, %d %h %Y %T +0000")
 From: Rootkit Check <admin@pbrisbin.com>
 To: pbrisbin@gmail.com
 
