@@ -1,14 +1,20 @@
-#!/bin/bash
-#
-# note: mpc undocumented --format field %position%
-#
-###
+#!/usr/bin/env ruby
 
-dmenu="dmenu ${DMENU_OPTIONS:--i}"
+def main(argv)
+  type = argv.first || 'artist'
 
-[[ "$*" = 'all' ]] && regex='.*' || regex="$*"
+  choice = `mpc list #{type} | dmenu ${DMENU_OPTIONS:--i}`.strip
 
-# dmenu with my choice of font has a 90 character limit
-choice=$(mpc --format '%position% %title% by %artist% on %album%' playlist | grep -i "$regex" | cut -c 1-90 | $dmenu | awk '{print $1}')
+  if choice && choice != ''
+    `mpc --no-status stop`
+    `mpc --no-status clear`
+    `mpc --no-status findadd #{type} '#{choice}'`
+    `mpc --no-status play`
+  end
 
-[[ -n "$choice" ]] && mpc --no-status play $choice
+rescue => ex
+  $stderr.puts "#{ex}"
+  exit 1
+end
+
+main(ARGV)
