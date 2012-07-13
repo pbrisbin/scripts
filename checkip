@@ -1,34 +1,31 @@
 #!/bin/bash
-#
-# pbrisbin 2009
-#
-###
 
-errorout() { echo "error: $*" >&2; exit 1; }
+cache="$HOME/.cache/dynamic-ip"
+touch "$cache"
 
-update_dns() {
-  local file="$HOME/.credentials"
-
-  echo "ip changed: $old -> $new"
-
-  # read user/pass from cred file
-  [[ -f "$file" ]] && . "$file" || errorout 'dns not updated, credentials file not found'
-
-  # try to update with zonedit
-  wget -q -O - --http-user=$zuser --http-passwd=$zpass "$zurl" &>/dev/null || errorout 'dns not updated, wget failure'
-
-  # store new ip
-  echo $new > "$ipfile"
-  echo 'dns updated. the change may take up to an hour to be seen.'
-}
-
-ipfile="$HOME/.myip"
-
-touch "$ipfile"
-
-read -r old < "$ipfile"
+read -r old < "$cache"
 read -r new < <(wget -q -O - 'http://tnx.nl/ip')
 
-if [[ "$1" == '--force' ]] || [[ "$old" != "$new" ]]; then
-  update_dns
+if [[ "$old" != "$new" ]]; then
+  /usr/sbin/sendmail -f 'admin@pbrisbin.com' pbrisbin@gmail.com << EOF
+Subject: Your IP has changed
+Date: $(date -u +"%a, %d %h %Y %T +0000")
+From: Dynamic IP <admin@pbrisbin.com>
+To: pbrisbin@gmail.com
+
+Hey,
+
+You're dynamic IP address seems to have changed.
+
+Old address: $old
+New address: $new
+
+Please update accordingly at:
+
+https://account.dyn.com/dns/dyn-standard-dns/pbrisbin.com
+
+Thanks,
+Admin
+
+EOF
 fi
