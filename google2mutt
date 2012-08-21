@@ -1,15 +1,4 @@
 #!/bin/bash -e
-fetch_contacts() {
-  local awkscript='{
-  if ($1 != "n/a" && $2 != "n/a") {
-    orig = $2;
-    gsub(" ", "_", $2);
-    printf "alias %s %s <%s>\n", $2, orig, $1;
-  };
-};
-'
-  echo '# vim: ft=muttrc'
-  $HOME/Code/bin/gcontacts.py -m short | awk -F '\t' "$awkscript"
-}
-
-fetch_contacts > "$HOME/.mutt/aliases"
+$HOME/Code/bin/gcontacts.py -m short |\
+  $HOME/.bin/google2mutt.awk >\
+  $HOME/.mutt/aliases
