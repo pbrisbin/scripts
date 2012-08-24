@@ -151,7 +151,7 @@ parse_options() {
   # set defaults
   args=()
   keep=false
-  build_files="$HOME/AUR/.build_files"
+  build_files="$HOME/.aur_build_files"
 
   # getopts
   while [[ -n "$1" ]]; do
