@@ -1,4 +1,0 @@
-#!/bin/bash -e
-$HOME/Code/bin/gcontacts.py -m short |\
-  $HOME/.bin/google2mutt.awk >\
-  $HOME/.mutt/aliases
