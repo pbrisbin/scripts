@@ -6,10 +6,11 @@ touch "$cache"
 read -r old < "$cache"
 read -r new < <(wget -q -O - 'http://tnx.nl/ip')
 
-if [[ "$old" != "$new" ]]; then
-  /usr/sbin/sendmail -f 'admin@pbrisbin.com' pbrisbin@gmail.com << EOF
+[[ "$old" == "$new" ]] && exit 0
+
+/usr/sbin/sendmail -f 'admin@pbrisbin.com' pbrisbin@gmail.com << EOF
 Subject: Your IP has changed
-Date: $(date -u +"%a, %d %h %Y %T +0000")
+Date: $(date -u +'%a, %d %h %Y %T +0000')
 From: Dynamic IP <admin@pbrisbin.com>
 To: pbrisbin@gmail.com
 
@@ -28,4 +29,3 @@ Thanks,
 Admin
 
 EOF
-fi
