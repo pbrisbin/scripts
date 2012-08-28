@@ -1,24 +1,30 @@
-#!/bin/bash
+#!/bin/bash -e
 #
-# pbrisbin 2010
-#
-# this script automatically writes an /etc/hosts file with the proper
-# localhost line, some individual lan ip lines as per lanip[], and a
-# comprehensive blacklist file downloaded from someonewhocares.org
+# pbrisbin 2012
 #
 ###
 
-# utilities
-logger() { echo "$(date +'[ %d %b %Y %H %M ]') :: $*" | tee -a $log; }
+die() { echo "error: $*" >&2; exit 1; }
 
-errorout() { logger "error: $*"; exit 1; }
+(( $UID )) && die 'you must be root'
+[[ -z "$HOSTNAME" ]] && die '$HOSTNAME not set'
 
-message() { echo "usage: updatehosts [-v]"; exit 1; }
+site='http://someonewhocares.org/hosts/hosts'
 
-write_hosts_file() {
-  local entry host ip
+lanips=( 
+  'router::192.168.0.1'
+  'blue::192.168.0.5'
+  'xbox::192.168.0.6'
+  'howard::192.168.0.7'
+  'susan::192.168.0.8'
+  'htpc::192.168.0.9'
+  'pixma::192.168.0.15'
+  'work::192.168.0.16'
+)
 
-  # write my entries
+cp -v /etc/hosts{,.bak}
+
+{
   cat << EOF
 #
 # /etc/hosts: static lookup table for host names
@@ -33,7 +39,6 @@ write_hosts_file() {
 
 EOF
 
-  # write my LAN ips
   for entry in "${lanips[@]}"; do
     host="${entry%%::*}"
     ip="${entry##*::}"
@@ -41,7 +46,6 @@ EOF
     echo -e "$ip\t$host.localdomain\t$host"
   done
 
-  # satisfy the license
   cat << EOF
 
 ###
@@ -54,46 +58,10 @@ EOF
   
 EOF
 
-  # just the raw ips and minus the localhost block
-  wget -q -O - "$site" | grep -v 'local\|host' | grep '^127'
+  wget -O - "$site" | grep -v 'local\|host' | grep '^127'
+  echo
 
-  # write an EOF
-  cat << EOF
+} > /etc/hosts.new
 
-# End of file
-EOF
-}
-
-# must be root
-[[ $(id -u) -ne 0 ]] && errorout 'you must be root'
-[[ -z "$HOSTNAME" ]] && errorout 'hostname not found'
-[[ "$1" = '-v' ]] && verbose=true || verbose=false
-
-# constants
-log='/home/patrick/.logs/updatehosts.log'
-site='http://someonewhocares.org/hosts/hosts'
-hosts='/etc/hosts'
-temp='/tmp/hosts'
-
-# array of 'host::ip'; will be added at top of file (after localhost)
-lanips=( 
-  'router::192.168.0.1'
-  'blue::192.168.0.5'
-  'xbox::192.168.0.6'
-  'howard::192.168.0.7'
-  'susan::192.168.0.8'
-  'htpc::192.168.0.9'
-  'pixma::192.168.0.15'
-  'work::192.168.0.16'
-)
-
-$verbose && logger "backing up $hosts..."
-cp "$hosts" "$hosts.bak" || errorout 'failed backing up current hosts file'
-
-$verbose && logger "writing $temp..."
-write_hosts_file > "$temp" || errorout 'failed writing new hosts file'
-
-$verbose && logger "moving $temp to $hosts..."
-mv "$temp" "$hosts" || errorout 'failed committing new hosts file'
-
-logger 'success.'
+mv -v /etc/hosts.{new,bak}
+rm -v /etc/hosts.bak
