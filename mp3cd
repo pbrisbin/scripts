@@ -51,7 +51,7 @@ burn_files() {
 
 # constants
 tmp='/tmp/mp3cd'
-log="${LOGS:-$PWD}/mp3cd.log"
+log='./mp3cd.log'
 limit=700000 # a 700MB CD
 
 totsize=0
