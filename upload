@@ -79,9 +79,23 @@ prompt() {
   esac
 }
 
+make_filename() {
+  local pkgbuild="$1"
+
+  (
+    unset -v pkgname
+    unset -v pkgver
+    unset -v pkgrel
+
+    . "$pkgbuild" || return 1
+
+    echo "/tmp/$pkgname-$pkgver-$pkgrel.src.tar.gz"
+    return 0
+  )
+}
+
 process_pkg() {
-  local pkg="$1"
-  local taur="/tmp/$pkg.tar.gz"
+  local pkg="$1" fn taur
 
   # ensure no cross-over
   unset -v source_files
@@ -103,6 +117,10 @@ process_pkg() {
   ${EDITOR:-vi} ./PKGBUILD         || return 1
   post_edit_hook                   || return 1
   popd >/dev/null                  || return 1
+
+  # source the pkgbuild so we can build the right filename. we don't use
+  # makepkg --source b/c we want to ignore files.
+  read -r taur < <(make_filename "$source_files/PKGBUILD") || return 1
 
   # tar and upload
   create_taurball "$source_files" "$taur" || return 1
