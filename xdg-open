@@ -11,10 +11,16 @@ file="$1"
 
 [[ -z "$file" ]] && { echo 'argument required' >&2; exit 1; }
 
+if [[ $file =~ ^magnet: ]]; then
+  echo "opening magnet link via magnet.sh" >&2
+  magnet.sh "$file"
+  exit $?
+fi
+
 if [[ ! -f "$file" ]]; then
   echo "$file is not a file, trying \$BROWSER" >&2
   $BROWSER "$file" &>/dev/null &
-  exit 0
+  exit $?
 fi
 
 if ! which xdg-mime &>/dev/null; then
