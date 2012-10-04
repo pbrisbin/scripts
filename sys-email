@@ -1,0 +1,21 @@
+#!/bin/bash
+#
+# pbrisbin 2012
+#
+###
+subject="${1:-System email}"
+
+/usr/sbin/sendmail -f 'admin@pbrisbin.com' pbrisbin@gmail.com << EOF
+Subject: $subject
+Date: $(date -u +'%a, %d %h %Y %T +0000')
+From: Admin <admin@pbrisbin.com>
+To: pbrisbin@gmail.com
+
+Hello,
+
+$(cat)
+
+Thanks,
+Admin
+
+EOF
