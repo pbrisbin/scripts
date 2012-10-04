@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# pbrisbin 2010
+# pbrisbin 2012
 #
 # put this at /usr/bin/xdg-open (or just ahead of it in $PATH) and
 # chromium will open apps sanely without all that .desktop crap
@@ -11,16 +11,14 @@ file="$1"
 
 [[ -z "$file" ]] && { echo 'argument required' >&2; exit 1; }
 
-if [[ $file =~ ^magnet: ]]; then
-  echo "opening magnet link via magnet.sh" >&2
-  magnet.sh "$file"
-  exit $?
+if [[ $file =~ ^magnet: ]] && [[ "$f" =~ xt=urn:btih:([^&/]+) ]]; then
+  echo "d10:magnet-uri${#1}:${1}e" > "~/Downloads/meta-${BASH_REMATCH[1]}.torrent"
+  exit 0
 fi
 
 if [[ ! -f "$file" ]]; then
-  echo "$file is not a file, trying \$BROWSER" >&2
   $BROWSER "$file" &>/dev/null &
-  exit $?
+  exit 0
 fi
 
 if ! which xdg-mime &>/dev/null; then
