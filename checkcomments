@@ -1,0 +1,47 @@
+#!/bin/bash
+
+get_current_count() {
+  psql -A -t -U pbrisbin pbrisbin <<EOF
+SELECT count(id)
+  FROM "SqlComment"
+  WHERE "userEmail" != 'pbrisbin@gmail.com'
+EOF
+}
+
+list_comments() {
+  psql -x -U pbrisbin pbrisbin <<EOF
+SELECT *
+  FROM "SqlComment"
+  WHERE "userEmail" != 'pbrisbin@gmail.com'
+  LIMIT ALL OFFSET $1
+EOF
+}
+
+cache="$HOME/.cache/pbrisbin-comments"
+touch "$cache"
+
+read -r old < $cache
+read -r new < <(get_current_count)
+
+[[ $new == $old ]] && exit 0
+
+/usr/sbin/sendmail -f 'admin@pbrisbin.com' pbrisbin@gmail.com << EOF
+Subject: New comments on pbrisbin dot com
+Date: $(date -u +'%a, %d %h %Y %T +0000')
+From: pbrisbin dot com <admin@pbrisbin.com>
+To: pbrisbin@gmail.com
+
+Hey,
+
+You've got some new comments:
+
+------------------------------------------------------------------------------------------
+$(list_comments ${old:-0})
+------------------------------------------------------------------------------------------
+
+Thanks,
+Admin
+
+EOF
+
+echo $new > "$cache"
