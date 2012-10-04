@@ -1,0 +1,14 @@
+#!/bin/bash
+#
+# pbrisbin 2012
+#
+###
+file=$(readlink -f "$1")
+base=$(basename "$file")
+link="http://files.pbrisbin.com/$base"
+dest="$HOME/Site/files/$base"
+
+if cp -iv "$file" "$dest"; then
+  echo -n "$link" | xclip
+  echo "$link"
+fi

@@ -1,0 +1,13 @@
+#!/bin/bash
+#
+# pbrisbin 2012
+#
+###
+name="desktop_$(date +%y%m%d%H%M).png"
+file="$HOME/Site/files/screenshots/$name"
+link="http://files.pbrisbin.com/screenshots/$name"
+
+if scrot "$@" "$file"; then
+  echo -n "$link" | xclip
+  echo "$link"
+fi
