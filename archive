@@ -1,141 +1,38 @@
 #!/bin/bash
 #
-# pbrisbin 2009
+# pbrisbin 2012
 #
-# [de]compress archives by file extension.
+# Note: I support dcompression of more formats than I do compression.
 #
 ###
+(( $# )) || { echo 'usage: archive [ -x ] [ file, ... ]' >&2; exit 1; }
 
-errorout() { echo "error: $*" >&2; exit 1; }
-
-message() { 
-  cat << EOF
-  usage: archive -x [ -t <target> ] [ -- ] <archive> ...
-         archive [ -f ] [ -t <target> ] [ -- ] <directory> ...
-
-    options:
-      
-      -x, --extract     extract <archive>
-      -f, --force       compress even if archive exists
-      -t, --target      compress to or extract in <target>
-
-    extraction notes:
-
-      when omitted, <target> defaults to current directory.
-
-      option -f is silently ignored. if the directory exists, files are
-      still extracted there regardless of existing contents.
-
-    compression notes:
-
-      when <target> is a path, all components but the last must exist
-      and \`.tar.gz' will be added if needed.
-
-      when omitted, <target> will be set as \`<directory>.tar.gz'. if
-      multiple, the first argument is used.
-
-EOF
-exit 1
-}
-
-compress() {
-  local _target="$1"; shift
-
-  [[ $# -eq 0 ]] && message
-
-  ! $force && [[ -e "$_target" ]] && errorout "$_target: file exists."
-
-  case "$_target" in
-    *.tbz2|*.tar.bz2) tar cvpjf "$_target" "$@"        ;;
-    *.tgz|*.tar.gz)   tar cvpzf "$_target" "$@"        ;;
-    *.gz)             cat "$@" | gzip > "$_target"     ;;
-    *.bz2)            cat "$@" | bzip2 > "$_target"    ;;
-    *.zip)            zip -r "$_target" "$@"           ;;
-    *.rar)            rar a "$_target" "$@"            ;;
-    *.7z)             7z -t7z "$_target" "$@"          ;;
-    *)                tar cvpzf "$_target.tar.gz" "$@" ;;
-  esac
-
-  [[ $? -ne 0 ]] && errorout 'failure during compression.'
-}
-
-extract() {
-  local _target="$1" archive; shift
-
-  [[ $# -eq 0 ]] && message
-
-  [[ -d "$_target" ]] || mkdir -p "$_target"
-
-  cd "$_target" || errorout "$_target: failed to change directories."
+if [[ $1 =~ -x|--extract ]]; then
+  shift
 
   for archive in "$@"; do
-    [[ ! -e "$archive" ]] && { echo "$archive: file not found." >&2; continue; }
-
     case "$archive" in
-      *.tbz2|*.tar.bz2) tar xvjf "$archive"              ;;
-      *.tgz|*.tar.gz)   tar xvzf "$archive"              ;;
-      *.tar)            tar xvf "$archive"               ;;
-      *.gz)             gunzip "$archive"                ;;
-      *.bz2)            bunzip2 "$archive"               ;;
-      *.zip)            unzip "$archive"                 ;;
-      *.rar)            unrar x "$archive"               ;;
-      *.Z)              uncompress "$archive"            ;;
-      *.7z)             7z x "$archive"                  ;;
-      *)                errorout "$archive: unkown type" ;;
+      *.tbz2|*.tar.bz2) tar xvjf "$archive"   ;;
+      *.tgz|*.tar.gz)   tar xvzf "$archive"   ;;
+      *.tar)            tar xvf "$archive"    ;;
+      *.gz)             gunzip "$archive"     ;;
+      *.bz2)            bunzip2 "$archive"    ;;
+      *.zip)            unzip "$archive"      ;;
+      *.rar)            unrar x "$archive"    ;;
+      *.Z)              uncompress "$archive" ;;
+      *.7z)             7z x "$archive"       ;;
+      *)                echo "$archive: unknown type" >&2 ;;
     esac
   done
+else
+  target="$1"; shift
 
-  [[ $? -ne 0 ]] && errorout 'failure during extraction.'
-}
-
-parse_options() {
-  args=()
-  target=
-  force=false
-  extract=false
-
-  [[ -z "$1" ]] && message
-
-  while [[ -n "$1" ]]; do
-    case "$1" in
-      -h|--help)    message            ;;
-      -f|--force)   force=true         ;;
-      -x|--extract) extract=true       ;;
-      -t|--target)  shift; target="$1" ;;
-      --)           break              ;;
-      -*)           message            ;;
-      *)            args+=( "$1" )     ;;
-    esac
-    shift
-  done
-  
-  # any args after --
-  [[ -n "$*" ]] && args+=( "$@" )
-}
-
-main() {
-  local arg tmp
-
-  if $extract; then
-    for arg in "${args[@]}"; do
-      # make args absolute file paths
-      tmp+=( "$(readlink -f "$arg")" )
-    done
-
-    args=( "${tmp[@]}" )
-    target="${target:-$PWD}"
-    extract "$target" "${args[@]}"
-  else
-    for arg in "${args[@]}"; do
-      # verify args exist
-      [[ -e "$arg" ]] && tmp+=( "$arg" ) || echo "$arg: file not found." >&2
-    done
-
-    args=( "${tmp[@]}" )
-    [[ -z "$target" ]] && target="${args[0]%/}.tar.gz"
-    compress "$target" "${args[@]}"
-  fi
-}
-
-parse_options "$@"
-main
+  case "$target" in
+    *.tbz2|*.tar.bz2) tar cvpjf "$target" "$@"     ;;
+    *.tgz|*.tar.gz)   tar cvpzf "$target" "$@"     ;;
+    *.gz)             cat "$@" | gzip > "$target"  ;;
+    *.bz2)            cat "$@" | bzip2 > "$target" ;;
+    *.zip)            zip -r "$target" "$@"        ;;
+    *)                $0 "$target.tar.gz" "$@"     ;;
+  esac
+fi
