@@ -11,13 +11,12 @@ read -r new < <(wget -q -O - 'http://tnx.nl/ip')
 
 [[ "$old" == "$new" ]] && exit 0
 
-(
-
+{
   cat << EOF
 Your dynamic IP address seems to have changed.
 
-  $old changed to
-  $new
+  <$old> changed to
+  <$new>
 
 Please update accordingly at:
 
@@ -25,6 +24,6 @@ Please update accordingly at:
 
 EOF
 
-) sys-email 'Dynamic IP has changed'
+} sys-email 'Dynamic IP has changed'
 
 echo $new > "$cache"

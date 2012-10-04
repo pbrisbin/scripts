@@ -5,10 +5,9 @@
 ###
 (( $UID )) && { echo 'you must be root' >&2; exit 1; }
 
-(
-
+{
   /usr/bin/rkhunter --versioncheck --nocolors
   /usr/bin/rkhunter --update --nocolors
   /usr/bin/rkhunter --cronjob --nocolors --report-warnings-only
 
-) | sys-email 'Rootkit check performed'
+} | sys-email 'Rootkit check performed'
