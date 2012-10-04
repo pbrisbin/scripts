@@ -1,16 +1,16 @@
 # Scripts
 
-Small scripts that are too big to be bash functions but too small to be 
-their own repos.
+Useful scripts.
 
-### Usage
+## Usage
 
-    git clone git://github.com/pbrisbin/scripts.git ~/.bin
+~~~
+$ git clone https://github.com/pbrisbin/scripts
+$ echo 'export PATH=$HOME/scripts:$PATH' >> ~/.bashrc  # or similar
+~~~
 
-Then, add `~/.bin` to `$PATH`.
+## Notes
 
-### Notes
-
-Any scripts that weren't written by me should have source url and author 
-info (when available). Please let me know if you find something of yours 
-here that's not correctly attributed.
+If you came here looking for some script and I've removed it or 
+rewritten it, try checking out the tags `pre-cleanup` or `pre-cleanout`, 
+you may find what you want there.
