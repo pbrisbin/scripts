@@ -1,0 +1,8 @@
+#!/bin/bash -e
+#
+# pbrisbin 2012
+#
+###
+if ping -c 1 htpc &>/dev/null; then
+  curl 'http://htpc:8080/xbmcCmds/xbmcHttp?command=ExecBuiltIn&parameter=XBMC.updatelibrary(video)'
+fi
