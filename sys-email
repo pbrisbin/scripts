@@ -3,19 +3,23 @@
 # pbrisbin 2012
 #
 ###
-subject="${1:-System email}"
-
-/usr/sbin/sendmail -f 'admin@pbrisbin.com' pbrisbin@gmail.com << EOF
-Subject: $subject
+{
+  cat << EOF
+Subject: ${1:-System email}
 Date: $(date -u +'%a, %d %h %Y %T +0000')
 From: Admin <admin@pbrisbin.com>
 To: pbrisbin@gmail.com
 
 Hello,
 
-$(cat)
+EOF
+
+  cat # stdin
+  cat << EOF
 
 Thanks,
 Admin
 
 EOF
+
+} | /usr/sbin/sendmail -f 'admin@pbrisbin.com' pbrisbin@gmail.com
