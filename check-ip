@@ -8,26 +8,20 @@ read -r new < <(wget -q -O - 'http://tnx.nl/ip')
 
 [[ "$old" == "$new" ]] && exit 0
 
-/usr/sbin/sendmail -f 'admin@pbrisbin.com' pbrisbin@gmail.com << EOF
-Subject: Your IP has changed
-Date: $(date -u +'%a, %d %h %Y %T +0000')
-From: Dynamic IP <admin@pbrisbin.com>
-To: pbrisbin@gmail.com
+(
 
-Hey,
+  cat << EOF
+Your dynamic IP address seems to have changed.
 
-You're dynamic IP address seems to have changed.
-
-Old address: $old
-New address: $new
+  $old changed to
+  $new
 
 Please update accordingly at:
 
-https://account.dyn.com/dns/dyn-standard-dns/pbrisbin.com
-
-Thanks,
-Admin
+  https://account.dyn.com/dns/dyn-standard-dns/pbrisbin.com
 
 EOF
+
+) sys-email 'Dynamic IP has changed'
 
 echo $new > "$cache"
