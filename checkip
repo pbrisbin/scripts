@@ -29,3 +29,5 @@ Thanks,
 Admin
 
 EOF
+
+echo $new > "$cache"
