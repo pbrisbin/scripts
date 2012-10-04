@@ -1,9 +1,8 @@
 #!/bin/bash
 #
-# pbrisbin 2009, 2010
+# pbrisbin 2010
 #
 ###
-
 message() {
   cat << EOF
 

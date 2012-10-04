@@ -1,5 +1,8 @@
 #!/bin/bash
-
+#
+# pbrisbin 2012
+#
+###
 get_current_count() {
   psql -A -t -U pbrisbin pbrisbin <<EOF
 SELECT count(id)

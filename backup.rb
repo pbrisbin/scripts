@@ -1,5 +1,8 @@
 #!/usr/bin/env ruby
-
+#
+# pbrisbin 2012
+#
+###
 class Main
   RSYNC = '/usr/bin/rsync -v -a --delete --delete-excluded'
 

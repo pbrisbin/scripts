@@ -1,5 +1,8 @@
 #!/bin/bash
-
+#
+# pbrisbin 2012
+#
+###
 cache="$HOME/.cache/dynamic-ip"
 touch "$cache"
 
