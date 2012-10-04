@@ -19,7 +19,6 @@ lanips=(
   'susan::192.168.0.8'
   'htpc::192.168.0.9'
   'pixma::192.168.0.15'
-  'work::192.168.0.16'
 )
 
 cp -v /etc/hosts{,.bak}
@@ -55,7 +54,7 @@ EOF
 # You are free to copy and distribute this file, as long the original 
 # URL is included.
 ###
-  
+
 EOF
 
   wget -O - "$site" | grep -v 'local\|host' | grep '^127'
