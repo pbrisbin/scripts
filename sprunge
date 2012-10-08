@@ -18,5 +18,5 @@ else
   fi
 fi
 
-echo -n "$link" | xclip
+[[ -n "$DISPLAY" ]] && echo -n "$link" | xclip
 echo "$link"

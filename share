@@ -9,6 +9,6 @@ link="http://files.pbrisbin.com/$base"
 dest="$HOME/Site/files/$base"
 
 if cp -iv "$file" "$dest"; then
-  echo -n "$link" | xclip
+  [[ -n "$DISPLAY" ]] && echo -n "$link" | xclip
   echo "$link"
 fi
