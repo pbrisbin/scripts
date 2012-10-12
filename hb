@@ -9,7 +9,7 @@ case "$1" in
   rip)     src='/dev/sr0'
            dst="$1.mp4" ;;
   convert) src="$1"
-           dst="$(basename "${in%.*}").mp4" ;;
+           dst="$(basename "${src%.*}").mp4" ;;
 esac
 
 shift
