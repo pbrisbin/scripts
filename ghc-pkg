@@ -4,7 +4,7 @@
 #
 ###
 broken_pkgs() {
-  /usr/bin/ghc-pkg $* check \
+  /usr/bin/ghc-pkg "$@" check \
     |& sed '/^There are problems in package \([^:]*\):$/!d; s//\1/'
 }
 
@@ -14,9 +14,9 @@ case "$1" in
 
     # this may need to be run multiple times to take care of cascading
     # borken packages.
-    for pkg in $(broken_pkgs $*); do
+    for pkg in $(broken_pkgs "$@"); do
       echo "attempting to unregister $pkg..."
-      /usr/bin/ghc-pkg $* unregister $pkg
+      /usr/bin/ghc-pkg "$@" unregister $pkg
     done
     ;;
 
@@ -31,5 +31,5 @@ case "$1" in
     ;;
 
   # forward all else
-  *) /usr/bin/ghc-pkg $* ;;
+  *) /usr/bin/ghc-pkg "$@" ;;
 esac
