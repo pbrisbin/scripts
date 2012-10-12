@@ -7,15 +7,10 @@ if (( ! $# )); then
   # simple, stdin usage
   read -r link < <(curl -s -F 'sprunge=<-' http://sprunge.us)
 else
-  read -r url < <(curl -s -F 'sprunge=<-' http://sprunge.us < "$1")
+  read -r link < <(curl -s -F 'sprunge=<-' http://sprunge.us < "$1")
 
-  ext="${1##*.}"
-
-  if [[ "$ext" == "$1" ]]; then
-    link="$url" # there was no extension
-  else
-    link="$url?${1##*.}"
-  fi
+  ext="${1##*.}" # no-op if no extension
+  [[ "$ext" != "$1" ]] && link="$link?$ext"
 fi
 
 [[ -n "$DISPLAY" ]] && echo -n "$link" | xclip
