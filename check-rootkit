@@ -10,4 +10,4 @@
   /usr/bin/rkhunter --update --nocolors
   /usr/bin/rkhunter --cronjob --nocolors --report-warnings-only
 
-} | sys-email 'Rootkit check performed'
+} | /home/patrick/.bin/sys-email 'Rootkit check performed'

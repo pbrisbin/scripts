@@ -24,6 +24,6 @@ Please update accordingly at:
 
 EOF
 
-} sys-email 'Dynamic IP has changed'
+} $HOME/.bin/sys-email 'Dynamic IP has changed'
 
 echo $new > "$cache"
