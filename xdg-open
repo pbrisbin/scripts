@@ -22,24 +22,18 @@ if ! which xdg-mime &>/dev/null; then
   exit 1
 fi
 
-IFS='/' read -r major minor < \
+read -r mimetype < \
   <(xdg-mime query filetype "$file" 2>/dev/null | cut -d ';' -f 1)
 
-case "$major/$minor" in
+case "$mimetype" in
   application/pdf) zathura "$file"  ;;
   application/ogg) mplayer "$file"  ;;
-
+  audio/*)         mplayer "$file"  ;;
+  video/*)         mplayer "$file"  ;;
+  image/*)         mirage  "$file"  ;;
+  text/*)          urxvtc -e vim "$file" ;;
   *)
-    case "$major" in
-      text)        urxvtc -e vim "$file" ;;
-      image)       mirage "$file"        ;;
-      audio|video) mplayer "$file"       ;;
-      *)
-        echo "$file: unmatched mimetype, $major/$minor" >&2
-        exit 1
-        ;;
-
-    esac
+    echo "$file: unmatched mimetype, $mimetype" >&2
+    exit 1
     ;;
-
 esac
