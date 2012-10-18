@@ -5,9 +5,9 @@
 ###
 if (( ! $# )); then
   # simple, stdin usage
-  read -r link < <(curl -s -F 'sprunge=<-' http://sprunge.us)
+  read -r link < <(curl -# -F 'sprunge=<-' http://sprunge.us)
 else
-  read -r link < <(curl -s -F 'sprunge=<-' http://sprunge.us < "$1")
+  read -r link < <(curl -# -F 'sprunge=<-' http://sprunge.us < "$1")
 
   ext="${1##*.}" # no-op if no extension
   [[ "$ext" != "$1" ]] && link="$link?$ext"
