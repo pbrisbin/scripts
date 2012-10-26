@@ -8,28 +8,20 @@
 require 'fileutils'
 require 'optparse'
 
-class String # {{{
-  def grep(regex)
-    lines = self.split("\n")
-    lines.select { |s| s =~ regex }
-  end
-end
-# }}}
-
 module Dvd2iso
   class Info # {{{
     attr_reader :title, :dvd_name, :file_name
     attr_reader :length, :audio_br, :chapter_markers
 
     def initialize(device)
-      title_info = `vobcopy -I '#{device}' 2>&1`
-      @title     = title_info.grep(/Most chapters/).first.split(' ')[5]
-      @dvd_name  = title_info.grep(/Name of the dvd/).first.split(' ')[5]
+      title_info = `vobcopy -I '#{device}' 2>&1`.lines
+      @title     = title_info.grep(/Most chapters/)   { |x| x.split(' ')[5] }.first
+      @dvd_name  = title_info.grep(/Name of the dvd/) { |x| x.split(' ')[5] }.first
       @file_name = dvd_name.downcase.gsub(/\s+/, '_')
 
-      probe_info = `tcprobe -i '#{device}' -T #{title} -d 8 2>&1`
-      @length    = probe_info.grep(/^V:/).first.split(' ')[3].to_i
-      @audio_br  = probe_info.grep(/^A:/).first.split(' ')[4].to_i / 8
+      probe_info = `tcprobe -i '#{device}' -T #{title} -d 8 2>&1`.lines
+      @length    = probe_info.grep(/^V:/) { |x| x.split(' ')[3].to_i     }.first
+      @audio_br  = probe_info.grep(/^A:/) { |x| x.split(' ')[4].to_i / 8 }.first
       @chapter_markers = probe_info.grep(/\[Chapter \d+\] /).map do |line|
         line.split(' ')[3]
       end
