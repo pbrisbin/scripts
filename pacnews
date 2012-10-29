@@ -1,88 +1,21 @@
-#!/bin/bash
+#!/bin/bash -e
 #
-# pbrisbin 2010
+# pbrisbin 2012
 #
 ###
-message() {
-  cat << EOF
+(( $UID )) && { echo 'you must be root' >&2; exit 1; }
 
-  usage: pacnews [-d <directory>]
-
-  pacnews is designed to streamline dealing with .pacnew files.
-
-  pacnews must be run as root, and will optionally accept a directory on
-  which to act, otherwise /etc will be searched by default.
-
-  all *.pacnew files found will be presented to you one by one; you'll
-  have the option of viewing/editing your current config file side by side
-  with the pacnew file through vimdiff, then you can remove the pacnew
-  file, replace you're existing config file with the .pacnew file, or do
-  nothing.
-
-  answering anything other than "y" to the options will eventually bring
-  you back without changing your system in any way.
-
-EOF
-
-  exit 1
-}
-
-errorout() { echo "error: $*" >&2; exit 1; }
-
-prompt() {
-  read -p "$*? [Y/n] " a
-
-  case "${a:-y}" in
-    y|Y) return 0 ;;
-    q|Q) exit 1   ;;
-    *)   return 1 ;;
-  esac
-}
-
-remove_file() {
-  local file="$1"
-
-  rm -v "$file" || errorout 'could not remove the pacnew file'
-}
-
-replace_file() {
-  local src="$1"
-  local dst="$2"
-
-  cp -v "$dst" "$dst.pacsave" || errorout 'could not back up existing config'
-  mv -v "$src" "$dst"         || errorout 'could not replace your config file'
-}
-
-# allow/check input
-dir="${1:-/etc}"
-[[ -d "$dir" ]] || message
-
-# need vimdiff
-which vimdiff &>/dev/null || errorout 'vimdiff not installed.'
-
-# must be root to act
-[[ $(id -u) -ne 0 ]] && errorout 'only root can do that.'
-
-files=( $(find "$dir" -name '*.pacnew' -print) )
-
-if [[ ${#files[@]} -eq 0 ]]; then
-  echo 'no pacnew files found.'
-  exit 1
-fi
+read -r -a files < <(find "${1:-/etc}" -name '*.pacnew' -print)
 
 for file in "${files[@]}"; do
   current="${file/.pacnew/}"
 
-  if prompt "$file found, view differences"; then
-    vimdiff "$current" "$file"
-    if prompt "remove $file"; then
-      remove_file "$file"
-    elif prompt "replace $current with $file"; then
-      replace_file "$file" "$current"
-    else
-      echo "$file left"
-    fi
-  else
-    echo "$file skipped"
+  read -r -p "[*] $file found. process it? [Y/n] " ans
+
+  if [[ "$ans" =~ ^($|y|Y) ]]; then
+    ${DIFFTOOL:-vimdiff} "$current" "$file"
+
+    rm -iv "$file" # -i gets us prompting for free
+    [[ -f "$file" ]] && mv -iv "$file" "$current"
   fi
 done
