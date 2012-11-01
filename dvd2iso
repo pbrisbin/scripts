@@ -22,9 +22,7 @@ module Dvd2iso
       probe_info = `tcprobe -i '#{device}' -T #{title} -d 8 2>&1`.lines
       @length    = probe_info.grep(/^V:/) { |x| x.split(' ')[3].to_i     }.first
       @audio_br  = probe_info.grep(/^A:/) { |x| x.split(' ')[4].to_i / 8 }.first
-      @chapter_markers = probe_info.grep(/\[Chapter \d+\] /).map do |line|
-        line.split(' ')[3]
-      end
+      @chapter_markers = probe_info.grep(/\[Chapter \d+\] /) { |x| x.split(' ')[3] }
     end
 
     # given the length and audio bitrate we know, calculate a video
