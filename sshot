@@ -3,7 +3,7 @@
 # pbrisbin 2012
 #
 ###
-name="desktop_$(date +%y%m%d%H%M).png"
+name="desktop_$(date +%y%m%d%H%M%S).png"
 file="$HOME/Site/files/screenshots/$name"
 link="http://files.pbrisbin.com/screenshots/$name"
 
