@@ -5,7 +5,9 @@
 ###
 (( $UID )) && { echo 'you must be root' >&2; exit 1; }
 
-read -r -a files < <(find "${1:-/etc}" -name '*.pacnew' -print)
+shopt -s nullglob
+
+files=( /etc/*.pacnew )
 
 (( ${#files[@]} )) || exit 1
 
