@@ -3,7 +3,7 @@
 # pbrisbin 2012
 #
 ###
-(( $# )) || { echo 'usage: burn [ -c ] file.iso' >&2; exit 1 }
+(( $# )) || { echo 'usage: burn [ -c ] file.iso' >&2; exit 1; }
 
 if [[ $1 =~ -c|--cd ]]; then
   shift; cdrecord -v speed=48 dev=/dev/sr0 "$1"
