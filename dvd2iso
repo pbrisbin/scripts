@@ -68,7 +68,7 @@ module Dvd2iso
 
       mkdir_p WORK_DIR, :verbose => true
 
-      mencoder device, info.title, info.video_br(SIZE), MPEG_FILE
+      mencoder info.title, info.video_br(SIZE), MPEG_FILE
       dvdauthor MPEG_FILE, info.chapter_markers, VIDEO_TS
       mkisofs VIDEO_TS, ISO_FILE
 
@@ -83,7 +83,7 @@ module Dvd2iso
       die("#{ex}")
     end
 
-    def mencoder(device, title, video_br, mpeg_file)
+    def mencoder(title, video_br, mpeg_file)
       execute('mencoder', "dvd://#{title}", "-dvd-device '#{device}'",
               '-mc 0', '-of mpeg', '-mpegopts format=dvd:tsaf', '-oac copy', '-ovc lavc', '-vf scale=720:480,pullup,softskip,harddup',
               "-lavcopts vcodec=mpeg2video:vrc_buf_size=1835:vrc_maxrate=9800:vbitrate=#{video_br}:keyint=18:vstrict=0:aspect=16/9:ilme:ildct",
@@ -103,11 +103,11 @@ module Dvd2iso
     private
 
     def execute(*args)
-      # copy/paste-able output
+      puts
       puts args.join(" \\\n  ")
 
       cmd  = args.join(' ')
-      cmd += " &>>'#{LOG}'"
+      cmd << " &>>'#{LOG}'"
 
       system(cmd) or die("#{$?}")
     end
