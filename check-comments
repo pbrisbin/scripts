@@ -16,6 +16,7 @@ list_comments() {
 SELECT *
   FROM "SqlComment"
   WHERE "userEmail" != 'pbrisbin@gmail.com'
+  ORDER BY "timeStamp" ASC
   LIMIT ALL OFFSET $1
 EOF
 }
