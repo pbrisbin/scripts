@@ -5,9 +5,9 @@
 ###
 (( $UID )) && { echo 'you must be root' >&2; exit 1; }
 
-shopt -s nullglob
+shopt -s globstar nullglob
 
-files=( /etc/*.pacnew )
+files=( /etc/**/*.pacnew )
 
 (( ${#files[@]} )) || exit 1
 
