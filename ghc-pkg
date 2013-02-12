@@ -13,7 +13,7 @@ case "$1" in
     shift
 
     # this may need to be run multiple times to take care of cascading
-    # borken packages.
+    # broken packages.
     for pkg in $(broken_pkgs "$@"); do
       echo "attempting to unregister $pkg..."
       /usr/bin/ghc-pkg "$@" unregister $pkg
@@ -27,7 +27,33 @@ case "$1" in
       rm -rfv "$HOME/.cabal/packages"/*/*
       rm -rfv "$HOME/.cabal/bin"/*
       rm -rfv "$HOME/.ghc"
+    else
+      exit 1
     fi
+    ;;
+
+  reinstall)
+    $0 reset     || exit $?
+    cabal update || exit $?
+
+    cabal install "$@" ghc-mod \
+                       xmonad \
+                       xmonad-contrib \
+                       yeganesh \
+                       pandoc \
+                       gravatar \
+                       friendly-time \
+                       sphinx \
+                       hjsmin \
+                       keter \
+                       persistent \
+                       persistent-postgresql \
+                       yesod \
+                       yesod-auth \
+                       yesod-form \
+                       yesod-newsfeed \
+                       yesod-persistent \
+                       yesod-static
     ;;
 
   # forward all else
