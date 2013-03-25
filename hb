@@ -7,10 +7,10 @@
 
 case "$1" in
   rip)     src='/dev/sr0'
-           dst="$2.mp4" ;;
+           dst="$2.m4v" ;;
   convert) src="$2"
-           dst="$(basename "${src%.*}").mp4" ;;
+           dst="$(basename "${src%.*}").m4v" ;;
 esac
 
 shift 2
-HandBrakeCLI -Z iPad "$@" -i "$src" -o "/mnt/media/Movies/$dst"
+HandBrakeCLI -Z "High Profile" "$@" -i "$src" -o "/mnt/media/Movies/$dst"
