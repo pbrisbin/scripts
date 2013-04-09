@@ -33,27 +33,31 @@ case "$1" in
     ;;
 
   reinstall)
+    shift
+
     $0 reset     || exit $?
     cabal update || exit $?
 
-    cabal install "$@" ghc-mod \
-                       xmonad \
-                       xmonad-contrib \
-                       yeganesh \
-                       pandoc \
-                       gravatar \
-                       friendly-time \
-                       sphinx \
-                       hjsmin \
-                       keter \
-                       persistent \
-                       persistent-postgresql \
-                       yesod \
-                       yesod-auth \
-                       yesod-form \
-                       yesod-newsfeed \
-                       yesod-persistent \
-                       yesod-static
+    cabal install "$@" \
+      ghc-mod \
+      hoogle \
+      xmonad \
+      xmonad-contrib \
+      yeganesh \
+      pandoc \
+      gravatar \
+      friendly-time \
+      sphinx \
+      hjsmin \
+      keter \
+      persistent \
+      persistent-postgresql \
+      yesod \
+      yesod-auth \
+      yesod-form \
+      yesod-newsfeed \
+      yesod-persistent \
+      yesod-static
     ;;
 
   # forward all else
