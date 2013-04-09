@@ -2,7 +2,15 @@
 #
 # pbrisbin 2012
 #
-# quick and dirty, ruby-based replacement for dvdcopy.
+# WARNING:
+#
+#   Something about the mencoder options causes the ISO to be unplayable
+#   on XBMC. I suspect it's refresh rate, but I'm not sure. They play
+#   fine via mplayer, and when burnt back to disc and played via a DVD
+#   player, they just skip when played directly on the HTPC. I'm
+#   unlikely to research this further as I no longer really have a need
+#   for ISOs and am simply going to rip to MP4 via handbrake from now
+#   on. Sorry...
 #
 ###
 require 'fileutils'
