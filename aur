@@ -3,6 +3,8 @@
 # pbrisbin 2013 - stupid simple, feature-less aur installer.
 #
 ###
+(( $# )) || exit 1
+
 AUR='https://aur.archlinux.org/packages'
 
 curl -# "$AUR/${1:0:2}/$1/${1}.tar.gz" | tar fxz -
