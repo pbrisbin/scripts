@@ -7,7 +7,7 @@
 
 shopt -s globstar nullglob
 
-files=( /etc/**/*.pacnew )
+files=( "${1:-/etc}"/**/*.pacnew )
 
 (( ${#files[@]} )) || exit 1
 
