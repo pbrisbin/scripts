@@ -1,0 +1,16 @@
+#!/bin/bash
+#
+# pbrisbin 2013
+#
+###
+monitor() { xrandr --output DP1 "$@"; }
+
+monitor --off
+
+case "$1" in
+  off) : ;; # leave it off
+  *)
+    mode="${1:-2560x1600}"
+    monitor --mode $mode --right-of LVDS1
+  ;;
+esac
