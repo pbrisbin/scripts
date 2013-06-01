@@ -41,6 +41,7 @@ case "$1" in
     cabal install "$@" \
       ghc-mod \
       hoogle \
+      hlint \
       xmonad \
       xmonad-contrib \
       yeganesh \
@@ -53,6 +54,7 @@ case "$1" in
       persistent \
       persistent-postgresql \
       yesod \
+      yesod-bin \
       yesod-auth \
       yesod-form \
       yesod-newsfeed \
