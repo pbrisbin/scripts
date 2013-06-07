@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 (
   sleep 0.1
   DISPLAY=:0.0 setxkbmap -option ctrl:nocaps
