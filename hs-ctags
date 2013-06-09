@@ -5,7 +5,8 @@
 ###
 
 class Ctags
-  def initialize
+  def initialize(out)
+    @out   = out || 'tags'
     @mains = %w( Main.hs main.hs app/main.hs )
     @mains << derive_main
   end
@@ -16,9 +17,11 @@ class Ctags
 
   private
 
+  attr_reader :out
+
   def ctags(file)
     if File.exists?(file)
-      system(%{ echo ":ctags" | ghci -v0 '#{file}' })
+      system(%{ echo ":ctags #{out}" | ghci -v0 '#{file}' })
     end
   end
 
@@ -32,4 +35,4 @@ class Ctags
   end
 end
 
-Ctags.new.run
+Ctags.new(ARGV.first).run
