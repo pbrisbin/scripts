@@ -3,6 +3,9 @@
 # pbrisbin 2012
 #
 ###
-if ping -c 1 htpc &>/dev/null; then
-  curl 'http://htpc:8080/xbmcCmds/xbmcHttp?command=ExecBuiltIn&parameter=XBMC.updatelibrary(video)'
+if ping -c 1 htpc.local &>/dev/null; then
+  curl \
+    -H 'Content-type: application/json' \
+    -d '{"jsonrpc":"2.0","method":"VideoLibrary.Scan","id":"blue"}' \
+    'http://htpc.local:8080/jsonrpc'
 fi
