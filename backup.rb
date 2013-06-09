@@ -13,7 +13,7 @@ class Main
       ex "#{RSYNC} /etc /usr /var /boot /mnt/backup/"
       ex "#{RSYNC} --exclude Documents/ripping /home/patrick /mnt/backup/home/"
       ex "#{RSYNC} --exclude Downloads /mnt/media/* /mnt/backup-media/"
-      ex "#{RSYNC} -e ssh root@htpc:/etc root@htpc:/home/xbmc /mnt/backup/htpc/"
+      ex "#{RSYNC} -e ssh root@htpc.local:/etc root@htpc.local:/home/xbmc /mnt/backup/htpc/"
 
     rescue => e
       $stderr.puts "#{e}"
