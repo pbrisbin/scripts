@@ -3,11 +3,6 @@
 # pbrisbin 2012
 #
 ###
-name="desktop_$(date +%y%m%d%H%M%S).png"
-file="$HOME/Site/files/screenshots/$name"
-link="http://files.pbrisbin.com/screenshots/$name"
+file="/tmp/desktop_$(date +%y%m%d%H%M%S).png"
 
-if scrot "$@" "$file"; then
-  echo -n "$link" | xclip
-  echo "$link"
-fi
+scrot "$@" "$file" && share --prefix screenshots "$file" && rm "$file"
