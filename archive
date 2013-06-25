@@ -33,6 +33,6 @@ else
     *.gz)             cat "$@" | gzip > "$target"  ;;
     *.bz2)            cat "$@" | bzip2 > "$target" ;;
     *.zip)            zip -r "$target" "$@"        ;;
-    *)                $0 "$target.tar.gz" "$@"     ;;
+    *)                $0 "$target.tar.gz" "$target" "$@" ;;
   esac
 fi
