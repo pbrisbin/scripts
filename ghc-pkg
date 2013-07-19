@@ -1,12 +1,41 @@
 #!/usr/bin/env bash
 #
-# pbrisbin 2012
+# pbrisbin 2013
 #
 ###
 broken_pkgs() {
   /usr/bin/ghc-pkg "$@" check \
     |& sed '/^There are problems in package \([^:]*\):$/!d; s//\1/'
 }
+
+basic_pkgs=(
+  cab
+  cabal-dev
+  ghc-mod
+  hlint
+  hoogle
+  pandoc
+  xmonad
+  xmonad-contrib
+  yeganesh
+)
+
+all_pkgs=(
+  $basic_pkgs
+  friendly-time
+  gravatar
+  hjsmin
+  keter
+  persistent
+  persistent-postgresql
+  yesod
+  yesod-auth
+  yesod-bin
+  yesod-form
+  yesod-newsfeed
+  yesod-persistent
+  yesod-static
+)
 
 case "$1" in
   clean)
@@ -30,36 +59,20 @@ case "$1" in
     else
       exit 1
     fi
+
+    cabal update
     ;;
 
   reinstall)
     shift
 
-    $0 reset     || exit $?
-    cabal update || exit $?
+    $0 reset || exit $?
 
-    cabal install "$@" \
-      ghc-mod \
-      hoogle \
-      hlint \
-      xmonad \
-      xmonad-contrib \
-      yeganesh \
-      pandoc \
-      gravatar \
-      friendly-time \
-      sphinx \
-      hjsmin \
-      keter \
-      persistent \
-      persistent-postgresql \
-      yesod \
-      yesod-bin \
-      yesod-auth \
-      yesod-form \
-      yesod-newsfeed \
-      yesod-persistent \
-      yesod-static
+    if [[ $HOST == 'blue' ]]; then
+      cabal install "$@" "${all_pkgs[@]}"
+    else
+      cabal install "$@" "${basic_pkgs[@]}"
+    fi
     ;;
 
   # forward all else
