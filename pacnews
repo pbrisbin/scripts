@@ -1,25 +1,24 @@
 #!/usr/bin/bash -e
 #
-# pbrisbin 2012
+# pbrisbin 2013
 #
 ###
-(( $UID )) && { echo 'you must be root' >&2; exit 1; }
+if (( $UID )); then
+  echo 'You must be root.' >&2
+  exit 1
+fi
 
 shopt -s globstar nullglob
 
-files=( "${1:-/etc}"/**/*.pacnew )
+set -- "${1:-/etc}"/**/*.pacnew
 
-(( ${#files[@]} )) || exit 1
+(( $# )) || exit 1
 
-for file in "${files[@]}"; do
+for file; do
   current="${file/.pacnew/}"
 
-  read -r -p "[*] $file found. process it? [Y/n] " ans
+  ${DIFFTOOL:-vimdiff} "$current" "$file"
 
-  if [[ "$ans" =~ ^($|y|Y) ]]; then
-    ${DIFFTOOL:-vimdiff} "$current" "$file"
-
-    rm -iv "$file" # -i gets us prompting for free
-    [[ -f "$file" ]] && mv -iv "$file" "$current"
-  fi
+  rm -iv "$file" # -i gets us prompting for free
+  [[ -f "$file" ]] && mv -iv "$file" "$current"
 done
