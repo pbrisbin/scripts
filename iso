@@ -1,11 +1,15 @@
-#!/usr/bin/env bash
+#!/usr/bin/env sh
 #
-# pbrisbin 2012
+# pbrisbin 2013
 #
 ###
-(( $# )) || { echo 'usage: iso [ file, ... ]' >&2; exit 1 }
+if [ $# -eq 0 ]; then
+  echo 'usage: iso <file>, ...' >&2
+  exit 1
+fi
 
-tmp=/tmp/iso; mkdir -p "$tmp"
+tmp=/tmp/iso
+mkdir -p "$tmp"
 
 for file; do
   ln -s "$(readlink -f "$file")" "$tmp"
