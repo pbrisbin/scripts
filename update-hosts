@@ -1,10 +1,12 @@
 #!/usr/bin/bash -e
 #
-# pbrisbin 2012
+# pbrisbin 2013
 #
 ###
-(( $UID )) && { echo 'you must be root' >&2; exit 1; }
+if [ $UID -ne 0 ]; then
+  printf "You must be root.\n" >&2
+  exit 1
+fi
 
-curl -# -o /etc/hosts.new 'http://someonewhocares.org/hosts/hosts'
-
-mv -v /etc/hosts{.new,}
+curl -# -o /etc/hosts.new 'http://someonewhocares.org/hosts/hosts' \
+  && mv -v /etc/hosts{.new,}
