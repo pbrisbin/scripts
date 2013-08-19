@@ -68,7 +68,7 @@ case "$1" in
 
     $0 reset || exit $?
 
-    if [[ $HOST == 'blue' ]]; then
+    if [[ $(hostname) == 'blue' ]]; then
       cabal install "$@" "${all_pkgs[@]}"
     else
       cabal install "$@" "${basic_pkgs[@]}"

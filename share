@@ -9,7 +9,7 @@ file=$(readlink -f "$1")
 base=$(basename "$file")
 share='Site/files'
 
-if [[ "$HOST" == 'blue' ]]; then
+if [[ $(hostname) == 'blue' ]]; then
   cp -v "$file" "$HOME/$share/$prefix$base"
 else
   scp "$file" "pbrisbin.com:~/$share/$prefix$base"
