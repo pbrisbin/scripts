@@ -12,7 +12,7 @@ fi
 
 timestamp=`date +%Y%m%d.%H:%M:%S`
 
-tarsnap \
+tarsnap "$@" \
   --keyfile /root/tarsnap.key \
   --cachedir /usr/local/tarsnap-cache \
   -c -f backup-$timestamp /home/patrick /root /etc
