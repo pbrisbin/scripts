@@ -1,3 +1,10 @@
+*NOTE: My scripts have been moved in with my main [dotfiles][] repo. Any 
+future updates will occur there.*
+
+[dotfiles]: https://github.com/pbrisbin/dotfiles
+
+---
+
 # Scripts
 
 Useful scripts.
